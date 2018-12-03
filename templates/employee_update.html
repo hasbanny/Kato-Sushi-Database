@@ -1,0 +1,51 @@
+{% extends "test-layout.html" %}
+	
+{% block title %}
+Owner view
+{% endblock %}
+{% block script %}
+<script src="{{ base_url() }}/../index.js"></script>
+{% endblock %}
+{% block content %}
+<div class="container">
+<div id="form" class="row justify-content-md-center mt-5">
+        <div class="card" style="width: 36rem;">
+          <div class="card-body">
+            <h5 class="card-title">Update employee</h5>
+            <p>Fill in the areas to update</p>
+            <form action="{{ base_url() }}/employee_update" method="POST">
+                <div class="form-group">
+                    <label for="ID">Employee ID</label>
+                    <input type="textbox" class="form-control" name="emp_id" aria-describedby="emailHelp" placeholder="ID" required>
+                </div>
+                <div class="form-group">
+                    <label for="SSN">SSN</label>
+                    <input type="textbox" class="form-control" name="ssn" aria-describedby="emailHelp" placeholder="Social Security Number">
+                </div>
+                <div class="form-group">
+                    <label for="full name">First and Last name</label>
+                    <input type="textbox" class="form-control" name="fullname" aria-describedby="emailHelp" placeholder="Full Name">
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="textbox" class="form-control" name="phone" aria-describedby="emailHelp" placeholder="Phone number">
+                </div>
+                <div class="form-group">
+                    <label for="salary">Salary</label>
+                    <input type="textbox" class="form-control" name="salary" aria-describedby="emailHelp" placeholder="Salary">
+                </div>
+                <div class="form-group">
+                    <label for="job">Job Title</label>
+                    <input type="textbox" class="form-control" name="job" aria-describedby="emailHelp" placeholder="Job title">
+                </div>
+                <input type="submit" value="Submit">
+            </form>
+              </div>
+        </div>
+    </div>	
+    <div>
+        <a href="{{ path_for('owner_view') }}">Back</a>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "test-layout.html" %}
+	
+{% block title %}
+Owner view
+{% endblock %}
+{% block script %}
+<script src="{{ base_url() }}/../index.js"></script>
+{% endblock %}
+{% block content %}
+<div class="container">
+	<h1>Welcome, user!</h1>
+	<h4>Choose a table:</h4>
+	<table class="table table-bordered">
+		<tbody>
+		  <tr>
+			<td>Employee
+				<ul>
+					<li><a href="{{base_url()}}/employee">View Table</a></li>
+					<li><a href="{{base_url()}}/employee_add">Add employee</a></li>
+					<li><a href="{{base_url()}}/employee_update">Update employee</a></li>
+					<li><a href="{{base_url()}}/employee_del">Remove employee</a></li>
+				</ul>
+			</td>
+			<td>Inventory
+				<ul>
+					<li>View Table</li>
+					<li>Add inventory</li>
+					<li>Update inventory</li>
+				</ul>
+			</td>
+		  </tr>
+		  <tr>
+			<td>Finances
+				<ul>
+					<li>View Table</li>
+					<li>Add to finances</li>
+					<li>Update finances</li>
+				</ul>
+			</td>
+			<td>Suppliers
+				<ul>
+					<li>View Table</li>
+					<li>Add supplier</li>
+					<li>Update supplier</li>
+				</ul>
+			</td>
+		  </tr>
+		</tbody>
+	  </table>
+</div>
+{% endblock %}
+      

@@ -1,0 +1,39 @@
+{% extends 'test-layout.html' %}
+{% block script %}
+<script src="{{ base_url() }}/../index.js"></script>
+{% endblock %}
+{% block title %}
+- Employees
+{% endblock %}
+
+{% block content %}
+<div class="container">
+   <div class="table-responsive">
+		<table class="table">
+			<thead class="thead-dark">
+				<tr>
+					<th scope="col">ID</th>
+					<th scope="col">Name</th>
+					<th scope="col">SSN</th>
+					<th scope="col">Phone Number</th>
+					<th scope="col">Salary</th>
+					<th scope="col">Job Title</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for emp in employee %}
+				<tr>
+					<th scope="row">{{ emp.getEmpId() }}</th>
+					<td>{{ emp.getName() }}</td>
+					<td>{{ emp.getEmpSsn() }}</td>
+					<td>{{ emp.getPhoneNum() }}</td>
+					<td>{{ emp.getSalary() }}</td>
+					<td>{{ emp.getJobTitle() }}</td>
+				</tr>
+				{% endfor %}
+			</tbody>		
+		</table>
+    </div>
+    <a href="{{ path_for('owner_view') }}">Back</a>
+</div>
+{% endblock %}

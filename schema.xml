@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<database name="default" defaultIdMethod="native" defaultPhpNamingMethod="underscore">
+  <table name="employee" idMethod="native" phpName="Employee">
+    <column name="emp_id" phpName="EmpId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="name" phpName="Name" type="VARCHAR" size="30" required="true"/>
+    <column name="emp_ssn" phpName="EmpSsn" type="INTEGER" required="true"/>
+    <column name="phone_num" phpName="PhoneNum" type="VARCHAR" size="20" required="true"/>
+    <column name="salary" phpName="Salary" type="INTEGER" required="true"/>
+    <column name="job_title" phpName="JobTitle" type="VARCHAR" size="20" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="finances" idMethod="native" phpName="Finances">
+    <column name="invoices" phpName="Invoices" type="VARCHAR" size="11" required="true"/>
+    <column name="bills" phpName="Bills" type="VARCHAR" size="11" required="true"/>
+    <column name="payroll" phpName="Payroll" type="INTEGER" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="inventory" idMethod="native" phpName="Inventory">
+    <column name="item" phpName="Item" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="ship_date" phpName="ShipDate" type="DATE" required="true"/>
+    <column name="supplier" phpName="Supplier" type="VARCHAR" size="11" required="true"/>
+    <column name="in_stock" phpName="InStock" type="INTEGER" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="owner" idMethod="native" phpName="Owner">
+    <column name="owner_id" phpName="OwnerId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="name" phpName="Name" type="VARCHAR" size="20" required="true"/>
+    <column name="address" phpName="Address" type="VARCHAR" size="30" required="true"/>
+    <column name="phone_num" phpName="PhoneNum" type="VARCHAR" size="20" required="true"/>
+    <column name="password_hash" phpName="PasswordHash" type="VARCHAR" size="128" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+  <table name="supplier" idMethod="native" phpName="Supplier">
+    <column name="sup_id" phpName="SupId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="name" phpName="Name" type="VARCHAR" size="11" required="true"/>
+    <column name="address" phpName="Address" type="VARCHAR" size="30" required="true"/>
+    <column name="phone_num" phpName="PhoneNum" type="INTEGER" required="true"/>
+    <vendor type="mysql">
+      <parameter name="Engine" value="InnoDB"/>
+    </vendor>
+  </table>
+</database>
