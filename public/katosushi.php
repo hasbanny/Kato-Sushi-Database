@@ -75,6 +75,20 @@ $app->get('/employee_add', function($request, $response, $args) {
 	return $response;
 })->setName('employee_add');
 
+$app->get('/inventory_add', function($request, $response, $args) {
+	$response = $this->view->render($response, 'inventory_add.html');
+	return $response;
+})->setName('inventory_add');
+
+$app->get('/supplier_add', function($request, $response, $args) {
+	$response = $this->view->render($response, 'supplier_add.html');
+	return $response;
+})->setName('supplier_add');
+
+$app->get('/owner_add', function($request, $response, $args) {
+	$response = $this->view->render($response, 'owner_add.html');
+	return $response;
+})->setName('owner_add');
 //update employee/inventory/finances/suppliers
 $app->get('/employee_update', function($request, $response, $args) {
 	$response = $this->view->render($response, 'employee_update.html');
@@ -88,12 +102,13 @@ $app->get('/employee_del', function($request, $response, $args) {
 })->setName('employee_del');
 
 //use post instead to get the information from the forms
-$app->get('/owner_add', function($request, $response, $args) use ($app){
+$app->post('/owner_add', function($request, $response, $args) use ($app){
+	$post = $request->getParsedBody();
 	$ne = new Owner();
-	$ne->setName('Cecilia Sanchez');
-	$ne->setAddress('406 Cherokee Lane. Alamo, TX');
-	$ne->setPhoneNum('9561234567');
-	$ne->setPasswordHash($ne->setPassword('123'));
+	$ne->setName($post['fullname']);
+	$ne->setAddress($post['fulladdr']);
+	$ne->setPhoneNum($post['phone']);
+	$ne->setPasswordHash($ne->setPassword($post['pass']));
 	$ne->save();
 
 	echo $ne->getPasswordHash();
