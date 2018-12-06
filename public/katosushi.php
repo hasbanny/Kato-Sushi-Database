@@ -2,6 +2,7 @@
 require '../vendor/autoload.php';
 require '../generated-conf/config.php';
 
+session_start();
 //////////////////////
 // Slim Setup
 //////////////////////
@@ -20,8 +21,14 @@ $container['view'] = function($container) {
 	$view->addExtension(
 	new Slim\Views\TwigExtension($container->get('router'), $basePath));
 	
+	$view->getEnvironment()->addGlobal('flash', $container->flash);
 	return $view;
 };
+
+$container['flash'] = function($container){
+	return new \Slim\Flash\Messages();
+};
+
 
 //////////////////////
 // Routes
@@ -31,18 +38,18 @@ $container['view'] = function($container) {
 $app->get('/', function ($request, $response, $args) {
 	$this->view->render($response, 'index.html');
 	return $response;
-});
+})->setName('home');
 
 //login route
 $app->get('/log', function ($request, $response, $args) {
 	$this->view->render($response, 'login.html');
 	return $response;
-});
+})->setName('log');
 
 //owner view route
 $app->get('/owner_view', function ($request, $response, $args) {
-	$this->view->render($response, 'owner_view.html');
-	return $response;
+	$response= $this->view->render($response, 'owner_view.html');
+    return $response;
 })->setName('owner_view');
 
 //view tables {employee/inventory/finances/suppliers}
@@ -83,10 +90,10 @@ $app->get('/employee_del', function($request, $response, $args) {
 //use post instead to get the information from the forms
 $app->get('/owner_add', function($request, $response, $args) use ($app){
 	$ne = new Owner();
-	$ne->setName('Hasbanny Irisson');
-	$ne->setAddress('3202 Aggie Dr. McAllen, TX');
-	$ne->setPhoneNum('9563289652');
-	$ne->setPasswordHash($ne->setPassword('bored'));
+	$ne->setName('Cecilia Sanchez');
+	$ne->setAddress('406 Cherokee Lane. Alamo, TX');
+	$ne->setPhoneNum('9561234567');
+	$ne->setPasswordHash($ne->setPassword('123'));
 	$ne->save();
 
 	echo $ne->getPasswordHash();
@@ -103,12 +110,8 @@ $app->post('/employee_add', function($request, $response, $args) use ($app){
 	$ne->setSalary($post['salary']);
 	$ne->setJobTitle($post['job']);
 	$ne->save();
-	//$app->$response->redirect($app->urlFor('employee'));
-	$emp = EmployeeQuery::create()->find();
-	$response= $this->view->render($response, 'employee.html', [
-        "employee" => $emp
-		]);
-    return $response;
+	
+	return $response->withRedirect('employee');
 });
 
 //use post instead to get the information from the forms
@@ -131,11 +134,8 @@ $app->post('/employee_update', function($request, $response, $args) {
 		$e->setJobTitle($post['job']);
 	}
 	$e->save();
-	/*$emp = EmployeeQuery::create()->find();
-	$response= $this->view->render($response, 'employee.html', [
-        "employee" => $emp
-		]);
-    return $response;*/
+
+	return $response->withRedirect('employee');
 });
 
 //use post instead to get the information from the forms
@@ -143,12 +143,21 @@ $app->post('/employee_del', function($request, $response, $args) {
 	$post = $request->getParsedBody();
 	$e = EmployeeQuery::create()->findPk($post['emp_id'])
 	->delete();
+
+	return $response->withRedirect('employee');
 });
 
 //////////////////////
 // AJAX Handlers
 //////////////////////
-
+$app->add(new Tuupola\Middleware\HttpBasicAuthentication([
+    "path" => "/", /* or ["/admin", "/api"] */
+    "realm" => "Protected",
+    "users" => [
+        "user1" => "bored",
+        "somebody" => "pass"
+    ]
+]));
 $app->post('/login', 
 	function($request, $response, $args) {
 		$post = $request->getParsedBody();
@@ -164,6 +173,7 @@ $app->post('/login',
 				return $response->withJson(["status" => 0]);
 			}
 			else{
+				$_SESSION['user'] = $post['owner_id'];
 				return $response->withJson(
 					["status" => 1,
 					"owner_id" => $wq->getOwnerId(),
@@ -173,6 +183,16 @@ $app->post('/login',
 		}
 		
 });
+
+$app->post('/logout', 
+	function($request, $response, $args) {
+	session_destroy();
+	return $response->withJson(["success" => "true"]);		
+});
+
+
+
+
 //////////////////////
 // App run
 //////////////////////

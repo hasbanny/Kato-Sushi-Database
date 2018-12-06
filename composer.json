@@ -3,7 +3,9 @@
     "require": {
         "slim/slim": "^3.11",
         "propel/propel": "^2.0@dev",
-        "slim/twig-view": "dev-master"
+        "slim/twig-view": "dev-master",
+        "slim/flash": "dev-master",
+        "tuupola/slim-basic-auth": "3.x-dev"
     },
     "autoload": {
         "classmap" : ["models"]
