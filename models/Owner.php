@@ -18,7 +18,6 @@ class Owner extends BaseOwner
         $hash = password_hash($p, PASSWORD_DEFAULT);
         return $hash;
     }
-
     public function login($pass){
         if (password_verify($pass, $this->getPasswordHash())) {
             return true;

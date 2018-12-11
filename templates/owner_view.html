@@ -5,54 +5,103 @@ Owner view
 {% endblock %}
 {% block script %}
 <script src="{{ base_url() }}/../index.js"></script>
+<style>
+th{
+text-align:center;
+background-color: #FA7B43;
+}
+h2{
+	text-align: center;
+}
+body {
+        background-color: #FA7B43;
+    }
+.container {
+	max-width: 50%;
+	margin-top: 1.5%;
+	background-color: white;
+}
+#log{
+	float: right;
+}
+
+table.table-bordered{
+    border:1px solid #FA7B43;
+	margin-bottom: 1%;
+  }
+table.table-bordered > tbody > tr > th{
+    border:1px solid #FA7B43;
+}
+table.table-bordered > tbody > tr > td{
+    border:1px solid #FA7B43;
+}
+</style>
 {% endblock %}
 {% block content %}
-<div class="container">
+<div class="container rounded">
 	<h2>Welcome</h2>
-	<p>(<a id="logout" href="" onclick="return false"><em>logout</em></a>)</p>
+	<div id="log"><p>(<a id="logout" href="" onclick="return false"><em>logout</em></a>)</p></div>
 	<h4>Choose a table:</h4>
-	<table class="table table-bordered">
+	<table class="table table-bordered border border-dark">
 		<tbody>
 		  <tr>
-			<td>Employee
+				<th scope="col" >Employees</th>
+			</tr>
+			<td>
 				<ul>
-					<li><a href="{{base_url()}}/employee">View Table</a></li>
-					<li><a href="{{base_url()}}/employee_add">Add employee</a></li>
-					<li><a href="{{base_url()}}/employee_update">Update employee</a></li>
-					<li><a href="{{base_url()}}/employee_del">Remove employee</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/employee">View Table</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/employee_add">Add employee</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/employee_update">Update employee</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/employee_del">Remove employee</a></li>
 				</ul>
 			</td>
-			<td>Inventory
+			</tr>
+			<tr>
+				<th scope="col">Inventory</th>
+			</tr>
+			<tr>
+			<td>
 				<ul>
-					<li><a href="{{base_url()}}/inventory">View Table</a></li>
-					<li>Add inventory</li>
-					<li>Update inventory</li>
+					<li><a href="{{base_url()}}/log/owner_view/inventory">View Table</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/inventory_add">Add inventory</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/inventory_update">Update inventory</a></li>
 				</ul>
 			</td>
 		  </tr>
 		  <tr>
-			<td>Finances
+				<th scope="col">Finances</th>
+			</tr>
+			<tr>
+			<td>
 				<ul>
 					<li>View Table</li>
 					<li>Add to finances</li>
 					<li>Update finances</li>
 				</ul>
 			</td>
-			<td>Suppliers
+		</tr>
+			<tr>
+				<th scope="col">Suppliers</th>
+			</tr>
+			<tr>
+			<td>
 				<ul>
-					<li>View Table</li>
-					<li>Add supplier</li>
-					<li>Update supplier</li>
+					<li><a href="{{base_url()}}/log/owner_view/supplier">View Table</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/supplier_add">Add supplier</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/supplier_update">Update supplier</a></li>
 				</ul>
 			</td>
 			</tr>
 			<tr>
-			<td>Owners
+				<th scope="col">Owners</th>
+			</tr>
+			<tr>
+			<td>
 				<ul>
-					<li>View Table</li>
-					<li>Add owner</li>
-                    <li>Update owner</li>
-                    <li>Delete owner</li>
+					<li><a href="{{base_url()}}/log/owner_view/owner">View Table</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/owner_add">Add owner</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/owner_update">Update owner</a></li>
+					<li><a href="{{base_url()}}/log/owner_view/owner_del">Remove owner</a></li>
 				</ul>
 			</td>
 		  </tr>

@@ -15,7 +15,7 @@ $('#log').on("click", function (t) {
             $('#wrong').attr("hidden", false)//showing error msg for wrong pass
         }
         else if(data["status"]=='1'){ 
-            window.location = baseurl + "/owner_view"
+            window.location = baseurl + "/log/owner_view"
         }
         else if(data["status"]=='2'){
             $('#userx').attr("hidden", false)//checking if the user exists in db

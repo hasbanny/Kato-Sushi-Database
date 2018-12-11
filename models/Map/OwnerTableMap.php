@@ -158,6 +158,27 @@ class OwnerTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('Employee', '\\Employee', RelationMap::ONE_TO_MANY, array (
+  0 =>
+  array (
+    0 => ':hired_by',
+    1 => ':owner_id',
+  ),
+), null, null, 'Employees', false);
+        $this->addRelation('Finances', '\\Finances', RelationMap::ONE_TO_MANY, array (
+  0 =>
+  array (
+    0 => ':paid_by',
+    1 => ':owner_id',
+  ),
+), null, null, 'Financess', false);
+        $this->addRelation('Inventory', '\\Inventory', RelationMap::ONE_TO_MANY, array (
+  0 =>
+  array (
+    0 => ':done_by',
+    1 => ':owner_id',
+  ),
+), null, null, 'Inventories', false);
     } // buildRelations()
 
     /**

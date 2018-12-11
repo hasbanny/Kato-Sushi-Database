@@ -3,6 +3,8 @@
 namespace Base;
 
 use \EmployeeQuery as ChildEmployeeQuery;
+use \Owner as ChildOwner;
+use \OwnerQuery as ChildOwnerQuery;
 use \Exception;
 use \PDO;
 use Map\EmployeeTableMap;
@@ -60,18 +62,11 @@ abstract class Employee implements ActiveRecordInterface
     protected $virtualColumns = array();
 
     /**
-     * The value for the emp_id field.
+     * The value for the id field.
      *
      * @var        int
      */
-    protected $emp_id;
-
-    /**
-     * The value for the name field.
-     *
-     * @var        string
-     */
-    protected $name;
+    protected $id;
 
     /**
      * The value for the emp_ssn field.
@@ -79,6 +74,13 @@ abstract class Employee implements ActiveRecordInterface
      * @var        int
      */
     protected $emp_ssn;
+
+    /**
+     * The value for the name field.
+     *
+     * @var        string
+     */
+    protected $name;
 
     /**
      * The value for the phone_num field.
@@ -100,6 +102,18 @@ abstract class Employee implements ActiveRecordInterface
      * @var        string
      */
     protected $job_title;
+
+    /**
+     * The value for the hired_by field.
+     *
+     * @var        int
+     */
+    protected $hired_by;
+
+    /**
+     * @var        ChildOwner
+     */
+    protected $aOwner;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -335,23 +349,13 @@ abstract class Employee implements ActiveRecordInterface
     }
 
     /**
-     * Get the [emp_id] column value.
+     * Get the [id] column value.
      *
      * @return int
      */
-    public function getEmpId()
+    public function getId()
     {
-        return $this->emp_id;
-    }
-
-    /**
-     * Get the [name] column value.
-     *
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->name;
+        return $this->id;
     }
 
     /**
@@ -362,6 +366,16 @@ abstract class Employee implements ActiveRecordInterface
     public function getEmpSsn()
     {
         return $this->emp_ssn;
+    }
+
+    /**
+     * Get the [name] column value.
+     *
+     * @return string
+     */
+    public function getName()
+    {
+        return $this->name;
     }
 
     /**
@@ -395,44 +409,34 @@ abstract class Employee implements ActiveRecordInterface
     }
 
     /**
-     * Set the value of [emp_id] column.
+     * Get the [hired_by] column value.
+     *
+     * @return int
+     */
+    public function getHiredBy()
+    {
+        return $this->hired_by;
+    }
+
+    /**
+     * Set the value of [id] column.
      *
      * @param int $v new value
      * @return $this|\Employee The current object (for fluent API support)
      */
-    public function setEmpId($v)
+    public function setId($v)
     {
         if ($v !== null) {
             $v = (int) $v;
         }
 
-        if ($this->emp_id !== $v) {
-            $this->emp_id = $v;
-            $this->modifiedColumns[EmployeeTableMap::COL_EMP_ID] = true;
+        if ($this->id !== $v) {
+            $this->id = $v;
+            $this->modifiedColumns[EmployeeTableMap::COL_ID] = true;
         }
 
         return $this;
-    } // setEmpId()
-
-    /**
-     * Set the value of [name] column.
-     *
-     * @param string $v new value
-     * @return $this|\Employee The current object (for fluent API support)
-     */
-    public function setName($v)
-    {
-        if ($v !== null) {
-            $v = (string) $v;
-        }
-
-        if ($this->name !== $v) {
-            $this->name = $v;
-            $this->modifiedColumns[EmployeeTableMap::COL_NAME] = true;
-        }
-
-        return $this;
-    } // setName()
+    } // setId()
 
     /**
      * Set the value of [emp_ssn] column.
@@ -453,6 +457,26 @@ abstract class Employee implements ActiveRecordInterface
 
         return $this;
     } // setEmpSsn()
+
+    /**
+     * Set the value of [name] column.
+     *
+     * @param string $v new value
+     * @return $this|\Employee The current object (for fluent API support)
+     */
+    public function setName($v)
+    {
+        if ($v !== null) {
+            $v = (string) $v;
+        }
+
+        if ($this->name !== $v) {
+            $this->name = $v;
+            $this->modifiedColumns[EmployeeTableMap::COL_NAME] = true;
+        }
+
+        return $this;
+    } // setName()
 
     /**
      * Set the value of [phone_num] column.
@@ -515,6 +539,30 @@ abstract class Employee implements ActiveRecordInterface
     } // setJobTitle()
 
     /**
+     * Set the value of [hired_by] column.
+     *
+     * @param int $v new value
+     * @return $this|\Employee The current object (for fluent API support)
+     */
+    public function setHiredBy($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->hired_by !== $v) {
+            $this->hired_by = $v;
+            $this->modifiedColumns[EmployeeTableMap::COL_HIRED_BY] = true;
+        }
+
+        if ($this->aOwner !== null && $this->aOwner->getOwnerId() !== $v) {
+            $this->aOwner = null;
+        }
+
+        return $this;
+    } // setHiredBy()
+
+    /**
      * Indicates whether the columns in this object are only set to default values.
      *
      * This method can be used in conjunction with isModified() to indicate whether an object is both
@@ -550,14 +598,14 @@ abstract class Employee implements ActiveRecordInterface
     {
         try {
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : EmployeeTableMap::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->emp_id = (null !== $col) ? (int) $col : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : EmployeeTableMap::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->id = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : EmployeeTableMap::translateFieldName('Name', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->name = (null !== $col) ? (string) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : EmployeeTableMap::translateFieldName('EmpSsn', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : EmployeeTableMap::translateFieldName('EmpSsn', TableMap::TYPE_PHPNAME, $indexType)];
             $this->emp_ssn = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : EmployeeTableMap::translateFieldName('Name', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->name = (null !== $col) ? (string) $col : null;
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : EmployeeTableMap::translateFieldName('PhoneNum', TableMap::TYPE_PHPNAME, $indexType)];
             $this->phone_num = (null !== $col) ? (string) $col : null;
@@ -567,6 +615,9 @@ abstract class Employee implements ActiveRecordInterface
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : EmployeeTableMap::translateFieldName('JobTitle', TableMap::TYPE_PHPNAME, $indexType)];
             $this->job_title = (null !== $col) ? (string) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 6 + $startcol : EmployeeTableMap::translateFieldName('HiredBy', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->hired_by = (null !== $col) ? (int) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -575,7 +626,7 @@ abstract class Employee implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 6; // 6 = EmployeeTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 7; // 7 = EmployeeTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Employee'), 0, $e);
@@ -597,6 +648,9 @@ abstract class Employee implements ActiveRecordInterface
      */
     public function ensureConsistency()
     {
+        if ($this->aOwner !== null && $this->hired_by !== $this->aOwner->getOwnerId()) {
+            $this->aOwner = null;
+        }
     } // ensureConsistency
 
     /**
@@ -636,6 +690,7 @@ abstract class Employee implements ActiveRecordInterface
 
         if ($deep) {  // also de-associate any related objects?
 
+            $this->aOwner = null;
         } // if (deep)
     }
 
@@ -739,6 +794,18 @@ abstract class Employee implements ActiveRecordInterface
         if (!$this->alreadyInSave) {
             $this->alreadyInSave = true;
 
+            // We call the save method on the following object(s) if they
+            // were passed to this object by their corresponding set
+            // method.  This object relates to these object(s) by a
+            // foreign key reference.
+
+            if ($this->aOwner !== null) {
+                if ($this->aOwner->isModified() || $this->aOwner->isNew()) {
+                    $affectedRows += $this->aOwner->save($con);
+                }
+                $this->setOwner($this->aOwner);
+            }
+
             if ($this->isNew() || $this->isModified()) {
                 // persist changes
                 if ($this->isNew()) {
@@ -770,20 +837,20 @@ abstract class Employee implements ActiveRecordInterface
         $modifiedColumns = array();
         $index = 0;
 
-        $this->modifiedColumns[EmployeeTableMap::COL_EMP_ID] = true;
-        if (null !== $this->emp_id) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key (' . EmployeeTableMap::COL_EMP_ID . ')');
+        $this->modifiedColumns[EmployeeTableMap::COL_ID] = true;
+        if (null !== $this->id) {
+            throw new PropelException('Cannot insert a value for auto-increment primary key (' . EmployeeTableMap::COL_ID . ')');
         }
 
          // check the columns in natural order for more readable SQL queries
-        if ($this->isColumnModified(EmployeeTableMap::COL_EMP_ID)) {
-            $modifiedColumns[':p' . $index++]  = 'emp_id';
-        }
-        if ($this->isColumnModified(EmployeeTableMap::COL_NAME)) {
-            $modifiedColumns[':p' . $index++]  = 'name';
+        if ($this->isColumnModified(EmployeeTableMap::COL_ID)) {
+            $modifiedColumns[':p' . $index++]  = 'id';
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_EMP_SSN)) {
             $modifiedColumns[':p' . $index++]  = 'emp_ssn';
+        }
+        if ($this->isColumnModified(EmployeeTableMap::COL_NAME)) {
+            $modifiedColumns[':p' . $index++]  = 'name';
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_PHONE_NUM)) {
             $modifiedColumns[':p' . $index++]  = 'phone_num';
@@ -793,6 +860,9 @@ abstract class Employee implements ActiveRecordInterface
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_JOB_TITLE)) {
             $modifiedColumns[':p' . $index++]  = 'job_title';
+        }
+        if ($this->isColumnModified(EmployeeTableMap::COL_HIRED_BY)) {
+            $modifiedColumns[':p' . $index++]  = 'hired_by';
         }
 
         $sql = sprintf(
@@ -805,14 +875,14 @@ abstract class Employee implements ActiveRecordInterface
             $stmt = $con->prepare($sql);
             foreach ($modifiedColumns as $identifier => $columnName) {
                 switch ($columnName) {
-                    case 'emp_id':
-                        $stmt->bindValue($identifier, $this->emp_id, PDO::PARAM_INT);
-                        break;
-                    case 'name':
-                        $stmt->bindValue($identifier, $this->name, PDO::PARAM_STR);
+                    case 'id':
+                        $stmt->bindValue($identifier, $this->id, PDO::PARAM_INT);
                         break;
                     case 'emp_ssn':
                         $stmt->bindValue($identifier, $this->emp_ssn, PDO::PARAM_INT);
+                        break;
+                    case 'name':
+                        $stmt->bindValue($identifier, $this->name, PDO::PARAM_STR);
                         break;
                     case 'phone_num':
                         $stmt->bindValue($identifier, $this->phone_num, PDO::PARAM_STR);
@@ -822,6 +892,9 @@ abstract class Employee implements ActiveRecordInterface
                         break;
                     case 'job_title':
                         $stmt->bindValue($identifier, $this->job_title, PDO::PARAM_STR);
+                        break;
+                    case 'hired_by':
+                        $stmt->bindValue($identifier, $this->hired_by, PDO::PARAM_INT);
                         break;
                 }
             }
@@ -836,7 +909,7 @@ abstract class Employee implements ActiveRecordInterface
         } catch (Exception $e) {
             throw new PropelException('Unable to get autoincrement id.', 0, $e);
         }
-        $this->setEmpId($pk);
+        $this->setId($pk);
 
         $this->setNew(false);
     }
@@ -886,13 +959,13 @@ abstract class Employee implements ActiveRecordInterface
     {
         switch ($pos) {
             case 0:
-                return $this->getEmpId();
+                return $this->getId();
                 break;
             case 1:
-                return $this->getName();
+                return $this->getEmpSsn();
                 break;
             case 2:
-                return $this->getEmpSsn();
+                return $this->getName();
                 break;
             case 3:
                 return $this->getPhoneNum();
@@ -902,6 +975,9 @@ abstract class Employee implements ActiveRecordInterface
                 break;
             case 5:
                 return $this->getJobTitle();
+                break;
+            case 6:
+                return $this->getHiredBy();
                 break;
             default:
                 return null;
@@ -920,10 +996,11 @@ abstract class Employee implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
         if (isset($alreadyDumpedObjects['Employee'][$this->hashCode()])) {
@@ -932,18 +1009,36 @@ abstract class Employee implements ActiveRecordInterface
         $alreadyDumpedObjects['Employee'][$this->hashCode()] = true;
         $keys = EmployeeTableMap::getFieldNames($keyType);
         $result = array(
-            $keys[0] => $this->getEmpId(),
-            $keys[1] => $this->getName(),
-            $keys[2] => $this->getEmpSsn(),
+            $keys[0] => $this->getId(),
+            $keys[1] => $this->getEmpSsn(),
+            $keys[2] => $this->getName(),
             $keys[3] => $this->getPhoneNum(),
             $keys[4] => $this->getSalary(),
             $keys[5] => $this->getJobTitle(),
+            $keys[6] => $this->getHiredBy(),
         );
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->aOwner) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'owner';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'owner';
+                        break;
+                    default:
+                        $key = 'Owner';
+                }
+
+                $result[$key] = $this->aOwner->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+        }
 
         return $result;
     }
@@ -978,13 +1073,13 @@ abstract class Employee implements ActiveRecordInterface
     {
         switch ($pos) {
             case 0:
-                $this->setEmpId($value);
+                $this->setId($value);
                 break;
             case 1:
-                $this->setName($value);
+                $this->setEmpSsn($value);
                 break;
             case 2:
-                $this->setEmpSsn($value);
+                $this->setName($value);
                 break;
             case 3:
                 $this->setPhoneNum($value);
@@ -994,6 +1089,9 @@ abstract class Employee implements ActiveRecordInterface
                 break;
             case 5:
                 $this->setJobTitle($value);
+                break;
+            case 6:
+                $this->setHiredBy($value);
                 break;
         } // switch()
 
@@ -1022,13 +1120,13 @@ abstract class Employee implements ActiveRecordInterface
         $keys = EmployeeTableMap::getFieldNames($keyType);
 
         if (array_key_exists($keys[0], $arr)) {
-            $this->setEmpId($arr[$keys[0]]);
+            $this->setId($arr[$keys[0]]);
         }
         if (array_key_exists($keys[1], $arr)) {
-            $this->setName($arr[$keys[1]]);
+            $this->setEmpSsn($arr[$keys[1]]);
         }
         if (array_key_exists($keys[2], $arr)) {
-            $this->setEmpSsn($arr[$keys[2]]);
+            $this->setName($arr[$keys[2]]);
         }
         if (array_key_exists($keys[3], $arr)) {
             $this->setPhoneNum($arr[$keys[3]]);
@@ -1038,6 +1136,9 @@ abstract class Employee implements ActiveRecordInterface
         }
         if (array_key_exists($keys[5], $arr)) {
             $this->setJobTitle($arr[$keys[5]]);
+        }
+        if (array_key_exists($keys[6], $arr)) {
+            $this->setHiredBy($arr[$keys[6]]);
         }
     }
 
@@ -1080,14 +1181,14 @@ abstract class Employee implements ActiveRecordInterface
     {
         $criteria = new Criteria(EmployeeTableMap::DATABASE_NAME);
 
-        if ($this->isColumnModified(EmployeeTableMap::COL_EMP_ID)) {
-            $criteria->add(EmployeeTableMap::COL_EMP_ID, $this->emp_id);
-        }
-        if ($this->isColumnModified(EmployeeTableMap::COL_NAME)) {
-            $criteria->add(EmployeeTableMap::COL_NAME, $this->name);
+        if ($this->isColumnModified(EmployeeTableMap::COL_ID)) {
+            $criteria->add(EmployeeTableMap::COL_ID, $this->id);
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_EMP_SSN)) {
             $criteria->add(EmployeeTableMap::COL_EMP_SSN, $this->emp_ssn);
+        }
+        if ($this->isColumnModified(EmployeeTableMap::COL_NAME)) {
+            $criteria->add(EmployeeTableMap::COL_NAME, $this->name);
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_PHONE_NUM)) {
             $criteria->add(EmployeeTableMap::COL_PHONE_NUM, $this->phone_num);
@@ -1097,6 +1198,9 @@ abstract class Employee implements ActiveRecordInterface
         }
         if ($this->isColumnModified(EmployeeTableMap::COL_JOB_TITLE)) {
             $criteria->add(EmployeeTableMap::COL_JOB_TITLE, $this->job_title);
+        }
+        if ($this->isColumnModified(EmployeeTableMap::COL_HIRED_BY)) {
+            $criteria->add(EmployeeTableMap::COL_HIRED_BY, $this->hired_by);
         }
 
         return $criteria;
@@ -1115,7 +1219,7 @@ abstract class Employee implements ActiveRecordInterface
     public function buildPkeyCriteria()
     {
         $criteria = ChildEmployeeQuery::create();
-        $criteria->add(EmployeeTableMap::COL_EMP_ID, $this->emp_id);
+        $criteria->add(EmployeeTableMap::COL_ID, $this->id);
 
         return $criteria;
     }
@@ -1128,7 +1232,7 @@ abstract class Employee implements ActiveRecordInterface
      */
     public function hashCode()
     {
-        $validPk = null !== $this->getEmpId();
+        $validPk = null !== $this->getId();
 
         $validPrimaryKeyFKs = 0;
         $primaryKeyFKs = [];
@@ -1148,18 +1252,18 @@ abstract class Employee implements ActiveRecordInterface
      */
     public function getPrimaryKey()
     {
-        return $this->getEmpId();
+        return $this->getId();
     }
 
     /**
-     * Generic method to set the primary key (emp_id column).
+     * Generic method to set the primary key (id column).
      *
      * @param       int $key Primary key.
      * @return void
      */
     public function setPrimaryKey($key)
     {
-        $this->setEmpId($key);
+        $this->setId($key);
     }
 
     /**
@@ -1168,7 +1272,7 @@ abstract class Employee implements ActiveRecordInterface
      */
     public function isPrimaryKeyNull()
     {
-        return null === $this->getEmpId();
+        return null === $this->getId();
     }
 
     /**
@@ -1184,14 +1288,15 @@ abstract class Employee implements ActiveRecordInterface
      */
     public function copyInto($copyObj, $deepCopy = false, $makeNew = true)
     {
-        $copyObj->setName($this->getName());
         $copyObj->setEmpSsn($this->getEmpSsn());
+        $copyObj->setName($this->getName());
         $copyObj->setPhoneNum($this->getPhoneNum());
         $copyObj->setSalary($this->getSalary());
         $copyObj->setJobTitle($this->getJobTitle());
+        $copyObj->setHiredBy($this->getHiredBy());
         if ($makeNew) {
             $copyObj->setNew(true);
-            $copyObj->setEmpId(NULL); // this is a auto-increment column, so set to default value
+            $copyObj->setId(NULL); // this is a auto-increment column, so set to default value
         }
     }
 
@@ -1218,18 +1323,73 @@ abstract class Employee implements ActiveRecordInterface
     }
 
     /**
+     * Declares an association between this object and a ChildOwner object.
+     *
+     * @param  ChildOwner $v
+     * @return $this|\Employee The current object (for fluent API support)
+     * @throws PropelException
+     */
+    public function setOwner(ChildOwner $v = null)
+    {
+        if ($v === null) {
+            $this->setHiredBy(NULL);
+        } else {
+            $this->setHiredBy($v->getOwnerId());
+        }
+
+        $this->aOwner = $v;
+
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the ChildOwner object, it will not be re-added.
+        if ($v !== null) {
+            $v->addEmployee($this);
+        }
+
+
+        return $this;
+    }
+
+
+    /**
+     * Get the associated ChildOwner object
+     *
+     * @param  ConnectionInterface $con Optional Connection object.
+     * @return ChildOwner The associated ChildOwner object.
+     * @throws PropelException
+     */
+    public function getOwner(ConnectionInterface $con = null)
+    {
+        if ($this->aOwner === null && ($this->hired_by != 0)) {
+            $this->aOwner = ChildOwnerQuery::create()->findPk($this->hired_by, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aOwner->addEmployees($this);
+             */
+        }
+
+        return $this->aOwner;
+    }
+
+    /**
      * Clears the current object, sets all attributes to their default values and removes
      * outgoing references as well as back-references (from other objects to this one. Results probably in a database
      * change of those foreign objects when you call `save` there).
      */
     public function clear()
     {
-        $this->emp_id = null;
-        $this->name = null;
+        if (null !== $this->aOwner) {
+            $this->aOwner->removeEmployee($this);
+        }
+        $this->id = null;
         $this->emp_ssn = null;
+        $this->name = null;
         $this->phone_num = null;
         $this->salary = null;
         $this->job_title = null;
+        $this->hired_by = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1250,6 +1410,7 @@ abstract class Employee implements ActiveRecordInterface
         if ($deep) {
         } // if ($deep)
 
+        $this->aOwner = null;
     }
 
     /**

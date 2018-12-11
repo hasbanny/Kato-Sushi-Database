@@ -18,17 +18,19 @@
 					<th scope="col">Phone Number</th>
 					<th scope="col">Salary</th>
 					<th scope="col">Job Title</th>
+					<th scope="col">Hired by</th>
 				</tr>
 			</thead>
 			<tbody>
 				{% for emp in employee %}
 				<tr>
-					<th scope="row">{{ emp.getEmpId() }}</th>
+					<th scope="row">{{ emp.getId() }}</th>
 					<td>{{ emp.getName() }}</td>
 					<td>{{ emp.getEmpSsn() }}</td>
 					<td>{{ emp.getPhoneNum() }}</td>
 					<td>{{ emp.getSalary() }}</td>
 					<td>{{ emp.getJobTitle() }}</td>
+					<td>{{ emp.getOwner().name }}</td>
 				</tr>
 				{% endfor %}
 			</tbody>		

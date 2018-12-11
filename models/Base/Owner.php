@@ -2,15 +2,26 @@
 
 namespace Base;
 
+use \Employee as ChildEmployee;
+use \EmployeeQuery as ChildEmployeeQuery;
+use \Finances as ChildFinances;
+use \FinancesQuery as ChildFinancesQuery;
+use \Inventory as ChildInventory;
+use \InventoryQuery as ChildInventoryQuery;
+use \Owner as ChildOwner;
 use \OwnerQuery as ChildOwnerQuery;
 use \Exception;
 use \PDO;
+use Map\EmployeeTableMap;
+use Map\FinancesTableMap;
+use Map\InventoryTableMap;
 use Map\OwnerTableMap;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\LogicException;
@@ -95,12 +106,48 @@ abstract class Owner implements ActiveRecordInterface
     protected $password_hash;
 
     /**
+     * @var        ObjectCollection|ChildEmployee[] Collection to store aggregation of ChildEmployee objects.
+     */
+    protected $collEmployees;
+    protected $collEmployeesPartial;
+
+    /**
+     * @var        ObjectCollection|ChildFinances[] Collection to store aggregation of ChildFinances objects.
+     */
+    protected $collFinancess;
+    protected $collFinancessPartial;
+
+    /**
+     * @var        ObjectCollection|ChildInventory[] Collection to store aggregation of ChildInventory objects.
+     */
+    protected $collInventories;
+    protected $collInventoriesPartial;
+
+    /**
      * Flag to prevent endless save loop, if this object is referenced
      * by another object which falls in this transaction.
      *
      * @var boolean
      */
     protected $alreadyInSave = false;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var ObjectCollection|ChildEmployee[]
+     */
+    protected $employeesScheduledForDeletion = null;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var ObjectCollection|ChildFinances[]
+     */
+    protected $financessScheduledForDeletion = null;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var ObjectCollection|ChildInventory[]
+     */
+    protected $inventoriesScheduledForDeletion = null;
 
     /**
      * Initializes internal state of Base\Owner object.
@@ -596,6 +643,12 @@ abstract class Owner implements ActiveRecordInterface
 
         if ($deep) {  // also de-associate any related objects?
 
+            $this->collEmployees = null;
+
+            $this->collFinancess = null;
+
+            $this->collInventories = null;
+
         } // if (deep)
     }
 
@@ -708,6 +761,57 @@ abstract class Owner implements ActiveRecordInterface
                     $affectedRows += $this->doUpdate($con);
                 }
                 $this->resetModified();
+            }
+
+            if ($this->employeesScheduledForDeletion !== null) {
+                if (!$this->employeesScheduledForDeletion->isEmpty()) {
+                    \EmployeeQuery::create()
+                        ->filterByPrimaryKeys($this->employeesScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->employeesScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collEmployees !== null) {
+                foreach ($this->collEmployees as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
+            }
+
+            if ($this->financessScheduledForDeletion !== null) {
+                if (!$this->financessScheduledForDeletion->isEmpty()) {
+                    \FinancesQuery::create()
+                        ->filterByPrimaryKeys($this->financessScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->financessScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collFinancess !== null) {
+                foreach ($this->collFinancess as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
+            }
+
+            if ($this->inventoriesScheduledForDeletion !== null) {
+                if (!$this->inventoriesScheduledForDeletion->isEmpty()) {
+                    \InventoryQuery::create()
+                        ->filterByPrimaryKeys($this->inventoriesScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->inventoriesScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collInventories !== null) {
+                foreach ($this->collInventories as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
             }
 
             $this->alreadyInSave = false;
@@ -871,10 +975,11 @@ abstract class Owner implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
         if (isset($alreadyDumpedObjects['Owner'][$this->hashCode()])) {
@@ -894,6 +999,53 @@ abstract class Owner implements ActiveRecordInterface
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->collEmployees) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'employees';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'employees';
+                        break;
+                    default:
+                        $key = 'Employees';
+                }
+
+                $result[$key] = $this->collEmployees->toArray(null, false, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+            if (null !== $this->collFinancess) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'financess';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'financess';
+                        break;
+                    default:
+                        $key = 'Financess';
+                }
+
+                $result[$key] = $this->collFinancess->toArray(null, false, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+            if (null !== $this->collInventories) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'inventories';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'inventories';
+                        break;
+                    default:
+                        $key = 'Inventories';
+                }
+
+                $result[$key] = $this->collInventories->toArray(null, false, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+        }
 
         return $result;
     }
@@ -1129,6 +1281,32 @@ abstract class Owner implements ActiveRecordInterface
         $copyObj->setAddress($this->getAddress());
         $copyObj->setPhoneNum($this->getPhoneNum());
         $copyObj->setPasswordHash($this->getPasswordHash());
+
+        if ($deepCopy) {
+            // important: temporarily setNew(false) because this affects the behavior of
+            // the getter/setter methods for fkey referrer objects.
+            $copyObj->setNew(false);
+
+            foreach ($this->getEmployees() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addEmployee($relObj->copy($deepCopy));
+                }
+            }
+
+            foreach ($this->getFinancess() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addFinances($relObj->copy($deepCopy));
+                }
+            }
+
+            foreach ($this->getInventories() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addInventory($relObj->copy($deepCopy));
+                }
+            }
+
+        } // if ($deepCopy)
+
         if ($makeNew) {
             $copyObj->setNew(true);
             $copyObj->setOwnerId(NULL); // this is a auto-increment column, so set to default value
@@ -1155,6 +1333,731 @@ abstract class Owner implements ActiveRecordInterface
         $this->copyInto($copyObj, $deepCopy);
 
         return $copyObj;
+    }
+
+
+    /**
+     * Initializes a collection based on the name of a relation.
+     * Avoids crafting an 'init[$relationName]s' method name
+     * that wouldn't work when StandardEnglishPluralizer is used.
+     *
+     * @param      string $relationName The name of the relation to initialize
+     * @return void
+     */
+    public function initRelation($relationName)
+    {
+        if ('Employee' == $relationName) {
+            $this->initEmployees();
+            return;
+        }
+        if ('Finances' == $relationName) {
+            $this->initFinancess();
+            return;
+        }
+        if ('Inventory' == $relationName) {
+            $this->initInventories();
+            return;
+        }
+    }
+
+    /**
+     * Clears out the collEmployees collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return void
+     * @see        addEmployees()
+     */
+    public function clearEmployees()
+    {
+        $this->collEmployees = null; // important to set this to NULL since that means it is uninitialized
+    }
+
+    /**
+     * Reset is the collEmployees collection loaded partially.
+     */
+    public function resetPartialEmployees($v = true)
+    {
+        $this->collEmployeesPartial = $v;
+    }
+
+    /**
+     * Initializes the collEmployees collection.
+     *
+     * By default this just sets the collEmployees collection to an empty array (like clearcollEmployees());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param      boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initEmployees($overrideExisting = true)
+    {
+        if (null !== $this->collEmployees && !$overrideExisting) {
+            return;
+        }
+
+        $collectionClassName = EmployeeTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collEmployees = new $collectionClassName;
+        $this->collEmployees->setModel('\Employee');
+    }
+
+    /**
+     * Gets an array of ChildEmployee objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this ChildOwner is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @return ObjectCollection|ChildEmployee[] List of ChildEmployee objects
+     * @throws PropelException
+     */
+    public function getEmployees(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        $partial = $this->collEmployeesPartial && !$this->isNew();
+        if (null === $this->collEmployees || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collEmployees) {
+                // return empty collection
+                $this->initEmployees();
+            } else {
+                $collEmployees = ChildEmployeeQuery::create(null, $criteria)
+                    ->filterByOwner($this)
+                    ->find($con);
+
+                if (null !== $criteria) {
+                    if (false !== $this->collEmployeesPartial && count($collEmployees)) {
+                        $this->initEmployees(false);
+
+                        foreach ($collEmployees as $obj) {
+                            if (false == $this->collEmployees->contains($obj)) {
+                                $this->collEmployees->append($obj);
+                            }
+                        }
+
+                        $this->collEmployeesPartial = true;
+                    }
+
+                    return $collEmployees;
+                }
+
+                if ($partial && $this->collEmployees) {
+                    foreach ($this->collEmployees as $obj) {
+                        if ($obj->isNew()) {
+                            $collEmployees[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collEmployees = $collEmployees;
+                $this->collEmployeesPartial = false;
+            }
+        }
+
+        return $this->collEmployees;
+    }
+
+    /**
+     * Sets a collection of ChildEmployee objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param      Collection $employees A Propel collection.
+     * @param      ConnectionInterface $con Optional connection object
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function setEmployees(Collection $employees, ConnectionInterface $con = null)
+    {
+        /** @var ChildEmployee[] $employeesToDelete */
+        $employeesToDelete = $this->getEmployees(new Criteria(), $con)->diff($employees);
+
+
+        $this->employeesScheduledForDeletion = $employeesToDelete;
+
+        foreach ($employeesToDelete as $employeeRemoved) {
+            $employeeRemoved->setOwner(null);
+        }
+
+        $this->collEmployees = null;
+        foreach ($employees as $employee) {
+            $this->addEmployee($employee);
+        }
+
+        $this->collEmployees = $employees;
+        $this->collEmployeesPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related Employee objects.
+     *
+     * @param      Criteria $criteria
+     * @param      boolean $distinct
+     * @param      ConnectionInterface $con
+     * @return int             Count of related Employee objects.
+     * @throws PropelException
+     */
+    public function countEmployees(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    {
+        $partial = $this->collEmployeesPartial && !$this->isNew();
+        if (null === $this->collEmployees || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collEmployees) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getEmployees());
+            }
+
+            $query = ChildEmployeeQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByOwner($this)
+                ->count($con);
+        }
+
+        return count($this->collEmployees);
+    }
+
+    /**
+     * Method called to associate a ChildEmployee object to this object
+     * through the ChildEmployee foreign key attribute.
+     *
+     * @param  ChildEmployee $l ChildEmployee
+     * @return $this|\Owner The current object (for fluent API support)
+     */
+    public function addEmployee(ChildEmployee $l)
+    {
+        if ($this->collEmployees === null) {
+            $this->initEmployees();
+            $this->collEmployeesPartial = true;
+        }
+
+        if (!$this->collEmployees->contains($l)) {
+            $this->doAddEmployee($l);
+
+            if ($this->employeesScheduledForDeletion and $this->employeesScheduledForDeletion->contains($l)) {
+                $this->employeesScheduledForDeletion->remove($this->employeesScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param ChildEmployee $employee The ChildEmployee object to add.
+     */
+    protected function doAddEmployee(ChildEmployee $employee)
+    {
+        $this->collEmployees[]= $employee;
+        $employee->setOwner($this);
+    }
+
+    /**
+     * @param  ChildEmployee $employee The ChildEmployee object to remove.
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function removeEmployee(ChildEmployee $employee)
+    {
+        if ($this->getEmployees()->contains($employee)) {
+            $pos = $this->collEmployees->search($employee);
+            $this->collEmployees->remove($pos);
+            if (null === $this->employeesScheduledForDeletion) {
+                $this->employeesScheduledForDeletion = clone $this->collEmployees;
+                $this->employeesScheduledForDeletion->clear();
+            }
+            $this->employeesScheduledForDeletion[]= clone $employee;
+            $employee->setOwner(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Clears out the collFinancess collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return void
+     * @see        addFinancess()
+     */
+    public function clearFinancess()
+    {
+        $this->collFinancess = null; // important to set this to NULL since that means it is uninitialized
+    }
+
+    /**
+     * Reset is the collFinancess collection loaded partially.
+     */
+    public function resetPartialFinancess($v = true)
+    {
+        $this->collFinancessPartial = $v;
+    }
+
+    /**
+     * Initializes the collFinancess collection.
+     *
+     * By default this just sets the collFinancess collection to an empty array (like clearcollFinancess());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param      boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initFinancess($overrideExisting = true)
+    {
+        if (null !== $this->collFinancess && !$overrideExisting) {
+            return;
+        }
+
+        $collectionClassName = FinancesTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collFinancess = new $collectionClassName;
+        $this->collFinancess->setModel('\Finances');
+    }
+
+    /**
+     * Gets an array of ChildFinances objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this ChildOwner is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @return ObjectCollection|ChildFinances[] List of ChildFinances objects
+     * @throws PropelException
+     */
+    public function getFinancess(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        $partial = $this->collFinancessPartial && !$this->isNew();
+        if (null === $this->collFinancess || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collFinancess) {
+                // return empty collection
+                $this->initFinancess();
+            } else {
+                $collFinancess = ChildFinancesQuery::create(null, $criteria)
+                    ->filterByOwner($this)
+                    ->find($con);
+
+                if (null !== $criteria) {
+                    if (false !== $this->collFinancessPartial && count($collFinancess)) {
+                        $this->initFinancess(false);
+
+                        foreach ($collFinancess as $obj) {
+                            if (false == $this->collFinancess->contains($obj)) {
+                                $this->collFinancess->append($obj);
+                            }
+                        }
+
+                        $this->collFinancessPartial = true;
+                    }
+
+                    return $collFinancess;
+                }
+
+                if ($partial && $this->collFinancess) {
+                    foreach ($this->collFinancess as $obj) {
+                        if ($obj->isNew()) {
+                            $collFinancess[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collFinancess = $collFinancess;
+                $this->collFinancessPartial = false;
+            }
+        }
+
+        return $this->collFinancess;
+    }
+
+    /**
+     * Sets a collection of ChildFinances objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param      Collection $financess A Propel collection.
+     * @param      ConnectionInterface $con Optional connection object
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function setFinancess(Collection $financess, ConnectionInterface $con = null)
+    {
+        /** @var ChildFinances[] $financessToDelete */
+        $financessToDelete = $this->getFinancess(new Criteria(), $con)->diff($financess);
+
+
+        $this->financessScheduledForDeletion = $financessToDelete;
+
+        foreach ($financessToDelete as $financesRemoved) {
+            $financesRemoved->setOwner(null);
+        }
+
+        $this->collFinancess = null;
+        foreach ($financess as $finances) {
+            $this->addFinances($finances);
+        }
+
+        $this->collFinancess = $financess;
+        $this->collFinancessPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related Finances objects.
+     *
+     * @param      Criteria $criteria
+     * @param      boolean $distinct
+     * @param      ConnectionInterface $con
+     * @return int             Count of related Finances objects.
+     * @throws PropelException
+     */
+    public function countFinancess(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    {
+        $partial = $this->collFinancessPartial && !$this->isNew();
+        if (null === $this->collFinancess || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collFinancess) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getFinancess());
+            }
+
+            $query = ChildFinancesQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByOwner($this)
+                ->count($con);
+        }
+
+        return count($this->collFinancess);
+    }
+
+    /**
+     * Method called to associate a ChildFinances object to this object
+     * through the ChildFinances foreign key attribute.
+     *
+     * @param  ChildFinances $l ChildFinances
+     * @return $this|\Owner The current object (for fluent API support)
+     */
+    public function addFinances(ChildFinances $l)
+    {
+        if ($this->collFinancess === null) {
+            $this->initFinancess();
+            $this->collFinancessPartial = true;
+        }
+
+        if (!$this->collFinancess->contains($l)) {
+            $this->doAddFinances($l);
+
+            if ($this->financessScheduledForDeletion and $this->financessScheduledForDeletion->contains($l)) {
+                $this->financessScheduledForDeletion->remove($this->financessScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param ChildFinances $finances The ChildFinances object to add.
+     */
+    protected function doAddFinances(ChildFinances $finances)
+    {
+        $this->collFinancess[]= $finances;
+        $finances->setOwner($this);
+    }
+
+    /**
+     * @param  ChildFinances $finances The ChildFinances object to remove.
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function removeFinances(ChildFinances $finances)
+    {
+        if ($this->getFinancess()->contains($finances)) {
+            $pos = $this->collFinancess->search($finances);
+            $this->collFinancess->remove($pos);
+            if (null === $this->financessScheduledForDeletion) {
+                $this->financessScheduledForDeletion = clone $this->collFinancess;
+                $this->financessScheduledForDeletion->clear();
+            }
+            $this->financessScheduledForDeletion[]= clone $finances;
+            $finances->setOwner(null);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Clears out the collInventories collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return void
+     * @see        addInventories()
+     */
+    public function clearInventories()
+    {
+        $this->collInventories = null; // important to set this to NULL since that means it is uninitialized
+    }
+
+    /**
+     * Reset is the collInventories collection loaded partially.
+     */
+    public function resetPartialInventories($v = true)
+    {
+        $this->collInventoriesPartial = $v;
+    }
+
+    /**
+     * Initializes the collInventories collection.
+     *
+     * By default this just sets the collInventories collection to an empty array (like clearcollInventories());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param      boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initInventories($overrideExisting = true)
+    {
+        if (null !== $this->collInventories && !$overrideExisting) {
+            return;
+        }
+
+        $collectionClassName = InventoryTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collInventories = new $collectionClassName;
+        $this->collInventories->setModel('\Inventory');
+    }
+
+    /**
+     * Gets an array of ChildInventory objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this ChildOwner is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @return ObjectCollection|ChildInventory[] List of ChildInventory objects
+     * @throws PropelException
+     */
+    public function getInventories(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        $partial = $this->collInventoriesPartial && !$this->isNew();
+        if (null === $this->collInventories || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collInventories) {
+                // return empty collection
+                $this->initInventories();
+            } else {
+                $collInventories = ChildInventoryQuery::create(null, $criteria)
+                    ->filterByOwner($this)
+                    ->find($con);
+
+                if (null !== $criteria) {
+                    if (false !== $this->collInventoriesPartial && count($collInventories)) {
+                        $this->initInventories(false);
+
+                        foreach ($collInventories as $obj) {
+                            if (false == $this->collInventories->contains($obj)) {
+                                $this->collInventories->append($obj);
+                            }
+                        }
+
+                        $this->collInventoriesPartial = true;
+                    }
+
+                    return $collInventories;
+                }
+
+                if ($partial && $this->collInventories) {
+                    foreach ($this->collInventories as $obj) {
+                        if ($obj->isNew()) {
+                            $collInventories[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collInventories = $collInventories;
+                $this->collInventoriesPartial = false;
+            }
+        }
+
+        return $this->collInventories;
+    }
+
+    /**
+     * Sets a collection of ChildInventory objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param      Collection $inventories A Propel collection.
+     * @param      ConnectionInterface $con Optional connection object
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function setInventories(Collection $inventories, ConnectionInterface $con = null)
+    {
+        /** @var ChildInventory[] $inventoriesToDelete */
+        $inventoriesToDelete = $this->getInventories(new Criteria(), $con)->diff($inventories);
+
+
+        $this->inventoriesScheduledForDeletion = $inventoriesToDelete;
+
+        foreach ($inventoriesToDelete as $inventoryRemoved) {
+            $inventoryRemoved->setOwner(null);
+        }
+
+        $this->collInventories = null;
+        foreach ($inventories as $inventory) {
+            $this->addInventory($inventory);
+        }
+
+        $this->collInventories = $inventories;
+        $this->collInventoriesPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related Inventory objects.
+     *
+     * @param      Criteria $criteria
+     * @param      boolean $distinct
+     * @param      ConnectionInterface $con
+     * @return int             Count of related Inventory objects.
+     * @throws PropelException
+     */
+    public function countInventories(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    {
+        $partial = $this->collInventoriesPartial && !$this->isNew();
+        if (null === $this->collInventories || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collInventories) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getInventories());
+            }
+
+            $query = ChildInventoryQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterByOwner($this)
+                ->count($con);
+        }
+
+        return count($this->collInventories);
+    }
+
+    /**
+     * Method called to associate a ChildInventory object to this object
+     * through the ChildInventory foreign key attribute.
+     *
+     * @param  ChildInventory $l ChildInventory
+     * @return $this|\Owner The current object (for fluent API support)
+     */
+    public function addInventory(ChildInventory $l)
+    {
+        if ($this->collInventories === null) {
+            $this->initInventories();
+            $this->collInventoriesPartial = true;
+        }
+
+        if (!$this->collInventories->contains($l)) {
+            $this->doAddInventory($l);
+
+            if ($this->inventoriesScheduledForDeletion and $this->inventoriesScheduledForDeletion->contains($l)) {
+                $this->inventoriesScheduledForDeletion->remove($this->inventoriesScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param ChildInventory $inventory The ChildInventory object to add.
+     */
+    protected function doAddInventory(ChildInventory $inventory)
+    {
+        $this->collInventories[]= $inventory;
+        $inventory->setOwner($this);
+    }
+
+    /**
+     * @param  ChildInventory $inventory The ChildInventory object to remove.
+     * @return $this|ChildOwner The current object (for fluent API support)
+     */
+    public function removeInventory(ChildInventory $inventory)
+    {
+        if ($this->getInventories()->contains($inventory)) {
+            $pos = $this->collInventories->search($inventory);
+            $this->collInventories->remove($pos);
+            if (null === $this->inventoriesScheduledForDeletion) {
+                $this->inventoriesScheduledForDeletion = clone $this->collInventories;
+                $this->inventoriesScheduledForDeletion->clear();
+            }
+            $this->inventoriesScheduledForDeletion[]= clone $inventory;
+            $inventory->setOwner(null);
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * If this collection has already been initialized with
+     * an identical criteria, it returns the collection.
+     * Otherwise if this Owner is new, it will return
+     * an empty collection; or if this Owner has previously
+     * been saved, it will retrieve related Inventories from storage.
+     *
+     * This method is protected by default in order to keep the public
+     * api reasonable.  You can provide public methods for those you
+     * actually need in Owner.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @param      string $joinBehavior optional join type to use (defaults to Criteria::LEFT_JOIN)
+     * @return ObjectCollection|ChildInventory[] List of ChildInventory objects
+     */
+    public function getInventoriesJoinSupplier(Criteria $criteria = null, ConnectionInterface $con = null, $joinBehavior = Criteria::LEFT_JOIN)
+    {
+        $query = ChildInventoryQuery::create(null, $criteria);
+        $query->joinWith('Supplier', $joinBehavior);
+
+        return $this->getInventories($query, $con);
     }
 
     /**
@@ -1187,8 +2090,26 @@ abstract class Owner implements ActiveRecordInterface
     public function clearAllReferences($deep = false)
     {
         if ($deep) {
+            if ($this->collEmployees) {
+                foreach ($this->collEmployees as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
+            if ($this->collFinancess) {
+                foreach ($this->collFinancess as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
+            if ($this->collInventories) {
+                foreach ($this->collInventories as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
         } // if ($deep)
 
+        $this->collEmployees = null;
+        $this->collFinancess = null;
+        $this->collInventories = null;
     }
 
     /**

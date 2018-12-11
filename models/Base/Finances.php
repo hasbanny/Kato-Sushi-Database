@@ -3,6 +3,9 @@
 namespace Base;
 
 use \FinancesQuery as ChildFinancesQuery;
+use \Owner as ChildOwner;
+use \OwnerQuery as ChildOwnerQuery;
+use \DateTime;
 use \Exception;
 use \PDO;
 use Map\FinancesTableMap;
@@ -17,6 +20,7 @@ use Propel\Runtime\Exception\LogicException;
 use Propel\Runtime\Exception\PropelException;
 use Propel\Runtime\Map\TableMap;
 use Propel\Runtime\Parser\AbstractParser;
+use Propel\Runtime\Util\PropelDateTime;
 
 /**
  * Base class that represents a row from the 'finances' table.
@@ -62,16 +66,23 @@ abstract class Finances implements ActiveRecordInterface
     /**
      * The value for the invoices field.
      *
-     * @var        string
+     * @var        int
      */
     protected $invoices;
 
     /**
      * The value for the bills field.
      *
-     * @var        string
+     * @var        int
      */
     protected $bills;
+
+    /**
+     * The value for the paid_by field.
+     *
+     * @var        int
+     */
+    protected $paid_by;
 
     /**
      * The value for the payroll field.
@@ -79,6 +90,18 @@ abstract class Finances implements ActiveRecordInterface
      * @var        int
      */
     protected $payroll;
+
+    /**
+     * The value for the due_on field.
+     *
+     * @var        DateTime
+     */
+    protected $due_on;
+
+    /**
+     * @var        ChildOwner
+     */
+    protected $aOwner;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -316,7 +339,7 @@ abstract class Finances implements ActiveRecordInterface
     /**
      * Get the [invoices] column value.
      *
-     * @return string
+     * @return int
      */
     public function getInvoices()
     {
@@ -326,11 +349,21 @@ abstract class Finances implements ActiveRecordInterface
     /**
      * Get the [bills] column value.
      *
-     * @return string
+     * @return int
      */
     public function getBills()
     {
         return $this->bills;
+    }
+
+    /**
+     * Get the [paid_by] column value.
+     *
+     * @return int
+     */
+    public function getPaidBy()
+    {
+        return $this->paid_by;
     }
 
     /**
@@ -344,15 +377,35 @@ abstract class Finances implements ActiveRecordInterface
     }
 
     /**
+     * Get the [optionally formatted] temporal [due_on] column value.
+     *
+     *
+     * @param      string|null $format The date/time format string (either date()-style or strftime()-style).
+     *                            If format is NULL, then the raw DateTime object will be returned.
+     *
+     * @return string|DateTime Formatted date/time value as string or DateTime object (if format is NULL), NULL if column is NULL, and 0 if column value is 0000-00-00
+     *
+     * @throws PropelException - if unable to parse/validate the date/time value.
+     */
+    public function getDueOn($format = NULL)
+    {
+        if ($format === null) {
+            return $this->due_on;
+        } else {
+            return $this->due_on instanceof \DateTimeInterface ? $this->due_on->format($format) : null;
+        }
+    }
+
+    /**
      * Set the value of [invoices] column.
      *
-     * @param string $v new value
+     * @param int $v new value
      * @return $this|\Finances The current object (for fluent API support)
      */
     public function setInvoices($v)
     {
         if ($v !== null) {
-            $v = (string) $v;
+            $v = (int) $v;
         }
 
         if ($this->invoices !== $v) {
@@ -366,13 +419,13 @@ abstract class Finances implements ActiveRecordInterface
     /**
      * Set the value of [bills] column.
      *
-     * @param string $v new value
+     * @param int $v new value
      * @return $this|\Finances The current object (for fluent API support)
      */
     public function setBills($v)
     {
         if ($v !== null) {
-            $v = (string) $v;
+            $v = (int) $v;
         }
 
         if ($this->bills !== $v) {
@@ -382,6 +435,30 @@ abstract class Finances implements ActiveRecordInterface
 
         return $this;
     } // setBills()
+
+    /**
+     * Set the value of [paid_by] column.
+     *
+     * @param int $v new value
+     * @return $this|\Finances The current object (for fluent API support)
+     */
+    public function setPaidBy($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->paid_by !== $v) {
+            $this->paid_by = $v;
+            $this->modifiedColumns[FinancesTableMap::COL_PAID_BY] = true;
+        }
+
+        if ($this->aOwner !== null && $this->aOwner->getOwnerId() !== $v) {
+            $this->aOwner = null;
+        }
+
+        return $this;
+    } // setPaidBy()
 
     /**
      * Set the value of [payroll] column.
@@ -402,6 +479,26 @@ abstract class Finances implements ActiveRecordInterface
 
         return $this;
     } // setPayroll()
+
+    /**
+     * Sets the value of [due_on] column to a normalized version of the date/time value specified.
+     *
+     * @param  mixed $v string, integer (timestamp), or \DateTimeInterface value.
+     *               Empty strings are treated as NULL.
+     * @return $this|\Finances The current object (for fluent API support)
+     */
+    public function setDueOn($v)
+    {
+        $dt = PropelDateTime::newInstance($v, null, 'DateTime');
+        if ($this->due_on !== null || $dt !== null) {
+            if ($this->due_on === null || $dt === null || $dt->format("Y-m-d") !== $this->due_on->format("Y-m-d")) {
+                $this->due_on = $dt === null ? null : clone $dt;
+                $this->modifiedColumns[FinancesTableMap::COL_DUE_ON] = true;
+            }
+        } // if either are not null
+
+        return $this;
+    } // setDueOn()
 
     /**
      * Indicates whether the columns in this object are only set to default values.
@@ -440,13 +537,22 @@ abstract class Finances implements ActiveRecordInterface
         try {
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : FinancesTableMap::translateFieldName('Invoices', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->invoices = (null !== $col) ? (string) $col : null;
+            $this->invoices = (null !== $col) ? (int) $col : null;
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : FinancesTableMap::translateFieldName('Bills', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->bills = (null !== $col) ? (string) $col : null;
+            $this->bills = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : FinancesTableMap::translateFieldName('Payroll', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : FinancesTableMap::translateFieldName('PaidBy', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->paid_by = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : FinancesTableMap::translateFieldName('Payroll', TableMap::TYPE_PHPNAME, $indexType)];
             $this->payroll = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : FinancesTableMap::translateFieldName('DueOn', TableMap::TYPE_PHPNAME, $indexType)];
+            if ($col === '0000-00-00') {
+                $col = null;
+            }
+            $this->due_on = (null !== $col) ? PropelDateTime::newInstance($col, null, 'DateTime') : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -455,7 +561,7 @@ abstract class Finances implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 3; // 3 = FinancesTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 5; // 5 = FinancesTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Finances'), 0, $e);
@@ -477,6 +583,9 @@ abstract class Finances implements ActiveRecordInterface
      */
     public function ensureConsistency()
     {
+        if ($this->aOwner !== null && $this->paid_by !== $this->aOwner->getOwnerId()) {
+            $this->aOwner = null;
+        }
     } // ensureConsistency
 
     /**
@@ -516,6 +625,7 @@ abstract class Finances implements ActiveRecordInterface
 
         if ($deep) {  // also de-associate any related objects?
 
+            $this->aOwner = null;
         } // if (deep)
     }
 
@@ -619,6 +729,18 @@ abstract class Finances implements ActiveRecordInterface
         if (!$this->alreadyInSave) {
             $this->alreadyInSave = true;
 
+            // We call the save method on the following object(s) if they
+            // were passed to this object by their corresponding set
+            // method.  This object relates to these object(s) by a
+            // foreign key reference.
+
+            if ($this->aOwner !== null) {
+                if ($this->aOwner->isModified() || $this->aOwner->isNew()) {
+                    $affectedRows += $this->aOwner->save($con);
+                }
+                $this->setOwner($this->aOwner);
+            }
+
             if ($this->isNew() || $this->isModified()) {
                 // persist changes
                 if ($this->isNew()) {
@@ -658,8 +780,14 @@ abstract class Finances implements ActiveRecordInterface
         if ($this->isColumnModified(FinancesTableMap::COL_BILLS)) {
             $modifiedColumns[':p' . $index++]  = 'bills';
         }
+        if ($this->isColumnModified(FinancesTableMap::COL_PAID_BY)) {
+            $modifiedColumns[':p' . $index++]  = 'paid_by';
+        }
         if ($this->isColumnModified(FinancesTableMap::COL_PAYROLL)) {
             $modifiedColumns[':p' . $index++]  = 'payroll';
+        }
+        if ($this->isColumnModified(FinancesTableMap::COL_DUE_ON)) {
+            $modifiedColumns[':p' . $index++]  = 'due_on';
         }
 
         $sql = sprintf(
@@ -673,13 +801,19 @@ abstract class Finances implements ActiveRecordInterface
             foreach ($modifiedColumns as $identifier => $columnName) {
                 switch ($columnName) {
                     case 'invoices':
-                        $stmt->bindValue($identifier, $this->invoices, PDO::PARAM_STR);
+                        $stmt->bindValue($identifier, $this->invoices, PDO::PARAM_INT);
                         break;
                     case 'bills':
-                        $stmt->bindValue($identifier, $this->bills, PDO::PARAM_STR);
+                        $stmt->bindValue($identifier, $this->bills, PDO::PARAM_INT);
+                        break;
+                    case 'paid_by':
+                        $stmt->bindValue($identifier, $this->paid_by, PDO::PARAM_INT);
                         break;
                     case 'payroll':
                         $stmt->bindValue($identifier, $this->payroll, PDO::PARAM_INT);
+                        break;
+                    case 'due_on':
+                        $stmt->bindValue($identifier, $this->due_on ? $this->due_on->format("Y-m-d H:i:s.u") : null, PDO::PARAM_STR);
                         break;
                 }
             }
@@ -743,7 +877,13 @@ abstract class Finances implements ActiveRecordInterface
                 return $this->getBills();
                 break;
             case 2:
+                return $this->getPaidBy();
+                break;
+            case 3:
                 return $this->getPayroll();
+                break;
+            case 4:
+                return $this->getDueOn();
                 break;
             default:
                 return null;
@@ -762,10 +902,11 @@ abstract class Finances implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
         if (isset($alreadyDumpedObjects['Finances'][$this->hashCode()])) {
@@ -776,13 +917,36 @@ abstract class Finances implements ActiveRecordInterface
         $result = array(
             $keys[0] => $this->getInvoices(),
             $keys[1] => $this->getBills(),
-            $keys[2] => $this->getPayroll(),
+            $keys[2] => $this->getPaidBy(),
+            $keys[3] => $this->getPayroll(),
+            $keys[4] => $this->getDueOn(),
         );
+        if ($result[$keys[4]] instanceof \DateTimeInterface) {
+            $result[$keys[4]] = $result[$keys[4]]->format('c');
+        }
+
         $virtualColumns = $this->virtualColumns;
         foreach ($virtualColumns as $key => $virtualColumn) {
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->aOwner) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'owner';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'owner';
+                        break;
+                    default:
+                        $key = 'Owner';
+                }
+
+                $result[$key] = $this->aOwner->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+        }
 
         return $result;
     }
@@ -823,7 +987,13 @@ abstract class Finances implements ActiveRecordInterface
                 $this->setBills($value);
                 break;
             case 2:
+                $this->setPaidBy($value);
+                break;
+            case 3:
                 $this->setPayroll($value);
+                break;
+            case 4:
+                $this->setDueOn($value);
                 break;
         } // switch()
 
@@ -858,7 +1028,13 @@ abstract class Finances implements ActiveRecordInterface
             $this->setBills($arr[$keys[1]]);
         }
         if (array_key_exists($keys[2], $arr)) {
-            $this->setPayroll($arr[$keys[2]]);
+            $this->setPaidBy($arr[$keys[2]]);
+        }
+        if (array_key_exists($keys[3], $arr)) {
+            $this->setPayroll($arr[$keys[3]]);
+        }
+        if (array_key_exists($keys[4], $arr)) {
+            $this->setDueOn($arr[$keys[4]]);
         }
     }
 
@@ -907,8 +1083,14 @@ abstract class Finances implements ActiveRecordInterface
         if ($this->isColumnModified(FinancesTableMap::COL_BILLS)) {
             $criteria->add(FinancesTableMap::COL_BILLS, $this->bills);
         }
+        if ($this->isColumnModified(FinancesTableMap::COL_PAID_BY)) {
+            $criteria->add(FinancesTableMap::COL_PAID_BY, $this->paid_by);
+        }
         if ($this->isColumnModified(FinancesTableMap::COL_PAYROLL)) {
             $criteria->add(FinancesTableMap::COL_PAYROLL, $this->payroll);
+        }
+        if ($this->isColumnModified(FinancesTableMap::COL_DUE_ON)) {
+            $criteria->add(FinancesTableMap::COL_DUE_ON, $this->due_on);
         }
 
         return $criteria;
@@ -1001,7 +1183,9 @@ abstract class Finances implements ActiveRecordInterface
     {
         $copyObj->setInvoices($this->getInvoices());
         $copyObj->setBills($this->getBills());
+        $copyObj->setPaidBy($this->getPaidBy());
         $copyObj->setPayroll($this->getPayroll());
+        $copyObj->setDueOn($this->getDueOn());
         if ($makeNew) {
             $copyObj->setNew(true);
         }
@@ -1030,15 +1214,71 @@ abstract class Finances implements ActiveRecordInterface
     }
 
     /**
+     * Declares an association between this object and a ChildOwner object.
+     *
+     * @param  ChildOwner $v
+     * @return $this|\Finances The current object (for fluent API support)
+     * @throws PropelException
+     */
+    public function setOwner(ChildOwner $v = null)
+    {
+        if ($v === null) {
+            $this->setPaidBy(NULL);
+        } else {
+            $this->setPaidBy($v->getOwnerId());
+        }
+
+        $this->aOwner = $v;
+
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the ChildOwner object, it will not be re-added.
+        if ($v !== null) {
+            $v->addFinances($this);
+        }
+
+
+        return $this;
+    }
+
+
+    /**
+     * Get the associated ChildOwner object
+     *
+     * @param  ConnectionInterface $con Optional Connection object.
+     * @return ChildOwner The associated ChildOwner object.
+     * @throws PropelException
+     */
+    public function getOwner(ConnectionInterface $con = null)
+    {
+        if ($this->aOwner === null && ($this->paid_by != 0)) {
+            $this->aOwner = ChildOwnerQuery::create()->findPk($this->paid_by, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aOwner->addFinancess($this);
+             */
+        }
+
+        return $this->aOwner;
+    }
+
+    /**
      * Clears the current object, sets all attributes to their default values and removes
      * outgoing references as well as back-references (from other objects to this one. Results probably in a database
      * change of those foreign objects when you call `save` there).
      */
     public function clear()
     {
+        if (null !== $this->aOwner) {
+            $this->aOwner->removeFinances($this);
+        }
         $this->invoices = null;
         $this->bills = null;
+        $this->paid_by = null;
         $this->payroll = null;
+        $this->due_on = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1059,6 +1299,7 @@ abstract class Finances implements ActiveRecordInterface
         if ($deep) {
         } // if ($deep)
 
+        $this->aOwner = null;
     }
 
     /**

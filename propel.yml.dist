@@ -9,7 +9,7 @@
 propel:
     paths:
         # The directory where Propel expects to find your `schema.xml` file.
-        schemaDir: C:\xampp\htdocs\Databases
+        schemaDir: C:\xampp\htdocs\Databases\Kato-Sushi-Database
 
         # The directory where Propel should output generated object model classes.
         phpDir: models
@@ -18,7 +18,7 @@ propel:
 #       connections:
 #           default:
 #               adapter: mysql
-#               dsn: mysql:host=localhost;port=3306;dbname=kato sushi
+#               dsn: mysql:host=localhost;port=3306;dbname=kato_sushi
 #               user: root
 #               password:
 #               settings:

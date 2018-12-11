@@ -3,7 +3,7 @@ propel:
         connections:
             default:
                 adapter: mysql
-                dsn: mysql:host=localhost;port=3306;dbname=kato sushi
+                dsn: mysql:host=localhost;port=3306;dbname=kato_sushi
                 user: root
                 password: 
                 settings:

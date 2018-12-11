@@ -59,7 +59,7 @@ class EmployeeTableMap extends TableMap
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 6;
+    const NUM_COLUMNS = 7;
 
     /**
      * The number of lazy-loaded columns
@@ -69,22 +69,22 @@ class EmployeeTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 6;
+    const NUM_HYDRATE_COLUMNS = 7;
 
     /**
-     * the column name for the emp_id field
+     * the column name for the id field
      */
-    const COL_EMP_ID = 'employee.emp_id';
-
-    /**
-     * the column name for the name field
-     */
-    const COL_NAME = 'employee.name';
+    const COL_ID = 'employee.id';
 
     /**
      * the column name for the emp_ssn field
      */
     const COL_EMP_SSN = 'employee.emp_ssn';
+
+    /**
+     * the column name for the name field
+     */
+    const COL_NAME = 'employee.name';
 
     /**
      * the column name for the phone_num field
@@ -102,6 +102,11 @@ class EmployeeTableMap extends TableMap
     const COL_JOB_TITLE = 'employee.job_title';
 
     /**
+     * the column name for the hired_by field
+     */
+    const COL_HIRED_BY = 'employee.hired_by';
+
+    /**
      * The default string format for model objects of the related table
      */
     const DEFAULT_STRING_FORMAT = 'YAML';
@@ -113,11 +118,11 @@ class EmployeeTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('EmpId', 'Name', 'EmpSsn', 'PhoneNum', 'Salary', 'JobTitle', ),
-        self::TYPE_CAMELNAME     => array('empId', 'name', 'empSsn', 'phoneNum', 'salary', 'jobTitle', ),
-        self::TYPE_COLNAME       => array(EmployeeTableMap::COL_EMP_ID, EmployeeTableMap::COL_NAME, EmployeeTableMap::COL_EMP_SSN, EmployeeTableMap::COL_PHONE_NUM, EmployeeTableMap::COL_SALARY, EmployeeTableMap::COL_JOB_TITLE, ),
-        self::TYPE_FIELDNAME     => array('emp_id', 'name', 'emp_ssn', 'phone_num', 'salary', 'job_title', ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
+        self::TYPE_PHPNAME       => array('Id', 'EmpSsn', 'Name', 'PhoneNum', 'Salary', 'JobTitle', 'HiredBy', ),
+        self::TYPE_CAMELNAME     => array('id', 'empSsn', 'name', 'phoneNum', 'salary', 'jobTitle', 'hiredBy', ),
+        self::TYPE_COLNAME       => array(EmployeeTableMap::COL_ID, EmployeeTableMap::COL_EMP_SSN, EmployeeTableMap::COL_NAME, EmployeeTableMap::COL_PHONE_NUM, EmployeeTableMap::COL_SALARY, EmployeeTableMap::COL_JOB_TITLE, EmployeeTableMap::COL_HIRED_BY, ),
+        self::TYPE_FIELDNAME     => array('id', 'emp_ssn', 'name', 'phone_num', 'salary', 'job_title', 'hired_by', ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, 6, )
     );
 
     /**
@@ -127,11 +132,11 @@ class EmployeeTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('EmpId' => 0, 'Name' => 1, 'EmpSsn' => 2, 'PhoneNum' => 3, 'Salary' => 4, 'JobTitle' => 5, ),
-        self::TYPE_CAMELNAME     => array('empId' => 0, 'name' => 1, 'empSsn' => 2, 'phoneNum' => 3, 'salary' => 4, 'jobTitle' => 5, ),
-        self::TYPE_COLNAME       => array(EmployeeTableMap::COL_EMP_ID => 0, EmployeeTableMap::COL_NAME => 1, EmployeeTableMap::COL_EMP_SSN => 2, EmployeeTableMap::COL_PHONE_NUM => 3, EmployeeTableMap::COL_SALARY => 4, EmployeeTableMap::COL_JOB_TITLE => 5, ),
-        self::TYPE_FIELDNAME     => array('emp_id' => 0, 'name' => 1, 'emp_ssn' => 2, 'phone_num' => 3, 'salary' => 4, 'job_title' => 5, ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
+        self::TYPE_PHPNAME       => array('Id' => 0, 'EmpSsn' => 1, 'Name' => 2, 'PhoneNum' => 3, 'Salary' => 4, 'JobTitle' => 5, 'HiredBy' => 6, ),
+        self::TYPE_CAMELNAME     => array('id' => 0, 'empSsn' => 1, 'name' => 2, 'phoneNum' => 3, 'salary' => 4, 'jobTitle' => 5, 'hiredBy' => 6, ),
+        self::TYPE_COLNAME       => array(EmployeeTableMap::COL_ID => 0, EmployeeTableMap::COL_EMP_SSN => 1, EmployeeTableMap::COL_NAME => 2, EmployeeTableMap::COL_PHONE_NUM => 3, EmployeeTableMap::COL_SALARY => 4, EmployeeTableMap::COL_JOB_TITLE => 5, EmployeeTableMap::COL_HIRED_BY => 6, ),
+        self::TYPE_FIELDNAME     => array('id' => 0, 'emp_ssn' => 1, 'name' => 2, 'phone_num' => 3, 'salary' => 4, 'job_title' => 5, 'hired_by' => 6, ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, 6, )
     );
 
     /**
@@ -151,12 +156,13 @@ class EmployeeTableMap extends TableMap
         $this->setPackage('');
         $this->setUseIdGenerator(true);
         // columns
-        $this->addPrimaryKey('emp_id', 'EmpId', 'INTEGER', true, null, null);
-        $this->addColumn('name', 'Name', 'VARCHAR', true, 30, null);
-        $this->addColumn('emp_ssn', 'EmpSsn', 'INTEGER', true, null, null);
+        $this->addPrimaryKey('id', 'Id', 'INTEGER', true, null, null);
+        $this->addColumn('emp_ssn', 'EmpSsn', 'INTEGER', true, 20, null);
+        $this->addColumn('name', 'Name', 'VARCHAR', true, 20, null);
         $this->addColumn('phone_num', 'PhoneNum', 'VARCHAR', true, 20, null);
         $this->addColumn('salary', 'Salary', 'INTEGER', true, null, null);
         $this->addColumn('job_title', 'JobTitle', 'VARCHAR', true, 20, null);
+        $this->addForeignKey('hired_by', 'HiredBy', 'INTEGER', 'owner', 'owner_id', true, null, null);
     } // initialize()
 
     /**
@@ -164,6 +170,13 @@ class EmployeeTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('Owner', '\\Owner', RelationMap::MANY_TO_ONE, array (
+  0 =>
+  array (
+    0 => ':hired_by',
+    1 => ':owner_id',
+  ),
+), null, null, null, false);
     } // buildRelations()
 
     /**
@@ -182,11 +195,11 @@ class EmployeeTableMap extends TableMap
     public static function getPrimaryKeyHashFromRow($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
         // If the PK cannot be derived from the row, return NULL.
-        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)] === null) {
+        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)] === null) {
             return null;
         }
 
-        return null === $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)] || is_scalar($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)]) || is_callable([$row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)], '__toString']) ? (string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)] : $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)];
+        return null === $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)] || is_scalar($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)]) || is_callable([$row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)], '__toString']) ? (string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)] : $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)];
     }
 
     /**
@@ -206,7 +219,7 @@ class EmployeeTableMap extends TableMap
         return (int) $row[
             $indexType == TableMap::TYPE_NUM
                 ? 0 + $offset
-                : self::translateFieldName('EmpId', TableMap::TYPE_PHPNAME, $indexType)
+                : self::translateFieldName('Id', TableMap::TYPE_PHPNAME, $indexType)
         ];
     }
 
@@ -307,19 +320,21 @@ class EmployeeTableMap extends TableMap
     public static function addSelectColumns(Criteria $criteria, $alias = null)
     {
         if (null === $alias) {
-            $criteria->addSelectColumn(EmployeeTableMap::COL_EMP_ID);
-            $criteria->addSelectColumn(EmployeeTableMap::COL_NAME);
+            $criteria->addSelectColumn(EmployeeTableMap::COL_ID);
             $criteria->addSelectColumn(EmployeeTableMap::COL_EMP_SSN);
+            $criteria->addSelectColumn(EmployeeTableMap::COL_NAME);
             $criteria->addSelectColumn(EmployeeTableMap::COL_PHONE_NUM);
             $criteria->addSelectColumn(EmployeeTableMap::COL_SALARY);
             $criteria->addSelectColumn(EmployeeTableMap::COL_JOB_TITLE);
+            $criteria->addSelectColumn(EmployeeTableMap::COL_HIRED_BY);
         } else {
-            $criteria->addSelectColumn($alias . '.emp_id');
-            $criteria->addSelectColumn($alias . '.name');
+            $criteria->addSelectColumn($alias . '.id');
             $criteria->addSelectColumn($alias . '.emp_ssn');
+            $criteria->addSelectColumn($alias . '.name');
             $criteria->addSelectColumn($alias . '.phone_num');
             $criteria->addSelectColumn($alias . '.salary');
             $criteria->addSelectColumn($alias . '.job_title');
+            $criteria->addSelectColumn($alias . '.hired_by');
         }
     }
 
@@ -371,7 +386,7 @@ class EmployeeTableMap extends TableMap
             $criteria = $values->buildPkeyCriteria();
         } else { // it's a primary key, or an array of pks
             $criteria = new Criteria(EmployeeTableMap::DATABASE_NAME);
-            $criteria->add(EmployeeTableMap::COL_EMP_ID, (array) $values, Criteria::IN);
+            $criteria->add(EmployeeTableMap::COL_ID, (array) $values, Criteria::IN);
         }
 
         $query = EmployeeQuery::create()->mergeWith($criteria);
@@ -419,8 +434,8 @@ class EmployeeTableMap extends TableMap
             $criteria = $criteria->buildCriteria(); // build Criteria from Employee object
         }
 
-        if ($criteria->containsKey(EmployeeTableMap::COL_EMP_ID) && $criteria->keyContainsValue(EmployeeTableMap::COL_EMP_ID) ) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key ('.EmployeeTableMap::COL_EMP_ID.')');
+        if ($criteria->containsKey(EmployeeTableMap::COL_ID) && $criteria->keyContainsValue(EmployeeTableMap::COL_ID) ) {
+            throw new PropelException('Cannot insert a value for auto-increment primary key ('.EmployeeTableMap::COL_ID.')');
         }
 
 

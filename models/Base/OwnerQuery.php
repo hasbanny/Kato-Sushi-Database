@@ -10,6 +10,7 @@ use Map\OwnerTableMap;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
+use Propel\Runtime\ActiveQuery\ModelJoin;
 use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\PropelException;
@@ -38,6 +39,38 @@ use Propel\Runtime\Exception\PropelException;
  * @method     ChildOwnerQuery leftJoinWith($relation) Adds a LEFT JOIN clause and with to the query
  * @method     ChildOwnerQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
  * @method     ChildOwnerQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
+ *
+ * @method     ChildOwnerQuery leftJoinEmployee($relationAlias = null) Adds a LEFT JOIN clause to the query using the Employee relation
+ * @method     ChildOwnerQuery rightJoinEmployee($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Employee relation
+ * @method     ChildOwnerQuery innerJoinEmployee($relationAlias = null) Adds a INNER JOIN clause to the query using the Employee relation
+ *
+ * @method     ChildOwnerQuery joinWithEmployee($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Employee relation
+ *
+ * @method     ChildOwnerQuery leftJoinWithEmployee() Adds a LEFT JOIN clause and with to the query using the Employee relation
+ * @method     ChildOwnerQuery rightJoinWithEmployee() Adds a RIGHT JOIN clause and with to the query using the Employee relation
+ * @method     ChildOwnerQuery innerJoinWithEmployee() Adds a INNER JOIN clause and with to the query using the Employee relation
+ *
+ * @method     ChildOwnerQuery leftJoinFinances($relationAlias = null) Adds a LEFT JOIN clause to the query using the Finances relation
+ * @method     ChildOwnerQuery rightJoinFinances($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Finances relation
+ * @method     ChildOwnerQuery innerJoinFinances($relationAlias = null) Adds a INNER JOIN clause to the query using the Finances relation
+ *
+ * @method     ChildOwnerQuery joinWithFinances($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Finances relation
+ *
+ * @method     ChildOwnerQuery leftJoinWithFinances() Adds a LEFT JOIN clause and with to the query using the Finances relation
+ * @method     ChildOwnerQuery rightJoinWithFinances() Adds a RIGHT JOIN clause and with to the query using the Finances relation
+ * @method     ChildOwnerQuery innerJoinWithFinances() Adds a INNER JOIN clause and with to the query using the Finances relation
+ *
+ * @method     ChildOwnerQuery leftJoinInventory($relationAlias = null) Adds a LEFT JOIN clause to the query using the Inventory relation
+ * @method     ChildOwnerQuery rightJoinInventory($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Inventory relation
+ * @method     ChildOwnerQuery innerJoinInventory($relationAlias = null) Adds a INNER JOIN clause to the query using the Inventory relation
+ *
+ * @method     ChildOwnerQuery joinWithInventory($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Inventory relation
+ *
+ * @method     ChildOwnerQuery leftJoinWithInventory() Adds a LEFT JOIN clause and with to the query using the Inventory relation
+ * @method     ChildOwnerQuery rightJoinWithInventory() Adds a RIGHT JOIN clause and with to the query using the Inventory relation
+ * @method     ChildOwnerQuery innerJoinWithInventory() Adds a INNER JOIN clause and with to the query using the Inventory relation
+ *
+ * @method     \EmployeeQuery|\FinancesQuery|\InventoryQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
  *
  * @method     ChildOwner findOne(ConnectionInterface $con = null) Return the first ChildOwner matching the query
  * @method     ChildOwner findOneOrCreate(ConnectionInterface $con = null) Return the first ChildOwner matching the query, or a new ChildOwner object populated from the query conditions when no match is found
@@ -390,6 +423,225 @@ abstract class OwnerQuery extends ModelCriteria
         }
 
         return $this->addUsingAlias(OwnerTableMap::COL_PASSWORD_HASH, $passwordHash, $comparison);
+    }
+
+    /**
+     * Filter the query by a related \Employee object
+     *
+     * @param \Employee|ObjectCollection $employee the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildOwnerQuery The current query, for fluid interface
+     */
+    public function filterByEmployee($employee, $comparison = null)
+    {
+        if ($employee instanceof \Employee) {
+            return $this
+                ->addUsingAlias(OwnerTableMap::COL_OWNER_ID, $employee->getHiredBy(), $comparison);
+        } elseif ($employee instanceof ObjectCollection) {
+            return $this
+                ->useEmployeeQuery()
+                ->filterByPrimaryKeys($employee->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByEmployee() only accepts arguments of type \Employee or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the Employee relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return $this|ChildOwnerQuery The current query, for fluid interface
+     */
+    public function joinEmployee($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('Employee');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'Employee');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the Employee relation Employee object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return \EmployeeQuery A secondary query class using the current class as primary query
+     */
+    public function useEmployeeQuery($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        return $this
+            ->joinEmployee($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Employee', '\EmployeeQuery');
+    }
+
+    /**
+     * Filter the query by a related \Finances object
+     *
+     * @param \Finances|ObjectCollection $finances the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildOwnerQuery The current query, for fluid interface
+     */
+    public function filterByFinances($finances, $comparison = null)
+    {
+        if ($finances instanceof \Finances) {
+            return $this
+                ->addUsingAlias(OwnerTableMap::COL_OWNER_ID, $finances->getPaidBy(), $comparison);
+        } elseif ($finances instanceof ObjectCollection) {
+            return $this
+                ->useFinancesQuery()
+                ->filterByPrimaryKeys($finances->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByFinances() only accepts arguments of type \Finances or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the Finances relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return $this|ChildOwnerQuery The current query, for fluid interface
+     */
+    public function joinFinances($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('Finances');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'Finances');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the Finances relation Finances object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return \FinancesQuery A secondary query class using the current class as primary query
+     */
+    public function useFinancesQuery($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        return $this
+            ->joinFinances($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Finances', '\FinancesQuery');
+    }
+
+    /**
+     * Filter the query by a related \Inventory object
+     *
+     * @param \Inventory|ObjectCollection $inventory the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildOwnerQuery The current query, for fluid interface
+     */
+    public function filterByInventory($inventory, $comparison = null)
+    {
+        if ($inventory instanceof \Inventory) {
+            return $this
+                ->addUsingAlias(OwnerTableMap::COL_OWNER_ID, $inventory->getDoneBy(), $comparison);
+        } elseif ($inventory instanceof ObjectCollection) {
+            return $this
+                ->useInventoryQuery()
+                ->filterByPrimaryKeys($inventory->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByInventory() only accepts arguments of type \Inventory or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the Inventory relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return $this|ChildOwnerQuery The current query, for fluid interface
+     */
+    public function joinInventory($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('Inventory');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'Inventory');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the Inventory relation Inventory object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return \InventoryQuery A secondary query class using the current class as primary query
+     */
+    public function useInventoryQuery($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        return $this
+            ->joinInventory($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Inventory', '\InventoryQuery');
     }
 
     /**

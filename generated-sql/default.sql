@@ -11,13 +11,18 @@ DROP TABLE IF EXISTS `employee`;
 
 CREATE TABLE `employee`
 (
-    `emp_id` INTEGER NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(30) NOT NULL,
-    `emp_ssn` INTEGER NOT NULL,
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `emp_ssn` INTEGER(20) NOT NULL,
+    `name` VARCHAR(20) NOT NULL,
     `phone_num` VARCHAR(20) NOT NULL,
     `salary` INTEGER NOT NULL,
     `job_title` VARCHAR(20) NOT NULL,
-    PRIMARY KEY (`emp_id`)
+    `hired_by` INTEGER NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE INDEX `paid_by` (`hired_by`),
+    CONSTRAINT `employee_ibfk_1`
+        FOREIGN KEY (`hired_by`)
+        REFERENCES `owner` (`owner_id`)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -28,9 +33,15 @@ DROP TABLE IF EXISTS `finances`;
 
 CREATE TABLE `finances`
 (
-    `invoices` VARCHAR(11) NOT NULL,
-    `bills` VARCHAR(11) NOT NULL,
-    `payroll` INTEGER NOT NULL
+    `invoices` INTEGER NOT NULL,
+    `bills` INTEGER NOT NULL,
+    `paid_by` INTEGER NOT NULL,
+    `payroll` INTEGER NOT NULL,
+    `due_on` DATE NOT NULL,
+    INDEX `paid_by` (`paid_by`),
+    CONSTRAINT `finances_ibfk_1`
+        FOREIGN KEY (`paid_by`)
+        REFERENCES `owner` (`owner_id`)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -41,11 +52,21 @@ DROP TABLE IF EXISTS `inventory`;
 
 CREATE TABLE `inventory`
 (
-    `item` INTEGER NOT NULL AUTO_INCREMENT,
+    `item_id` INTEGER NOT NULL AUTO_INCREMENT,
+    `item_name` VARCHAR(20) NOT NULL,
+    `supplied_by` INTEGER NOT NULL,
     `ship_date` DATE NOT NULL,
-    `supplier` VARCHAR(11) NOT NULL,
     `in_stock` INTEGER NOT NULL,
-    PRIMARY KEY (`item`)
+    `done_by` INTEGER NOT NULL,
+    PRIMARY KEY (`item_id`),
+    INDEX `supplier` (`supplied_by`),
+    INDEX `done_by` (`done_by`),
+    CONSTRAINT `inventory_ibfk_1`
+        FOREIGN KEY (`supplied_by`)
+        REFERENCES `supplier` (`sup_id`),
+    CONSTRAINT `inventory_ibfk_2`
+        FOREIGN KEY (`done_by`)
+        REFERENCES `owner` (`owner_id`)
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------
@@ -73,9 +94,9 @@ DROP TABLE IF EXISTS `supplier`;
 CREATE TABLE `supplier`
 (
     `sup_id` INTEGER NOT NULL AUTO_INCREMENT,
-    `name` VARCHAR(11) NOT NULL,
+    `name` VARCHAR(20) NOT NULL,
     `address` VARCHAR(30) NOT NULL,
-    `phone_num` INTEGER NOT NULL,
+    `phone_num` VARCHAR(20) NOT NULL,
     PRIMARY KEY (`sup_id`)
 ) ENGINE=InnoDB;
 

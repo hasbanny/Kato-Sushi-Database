@@ -1,29 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
 <database name="default" defaultIdMethod="native" defaultPhpNamingMethod="underscore">
   <table name="employee" idMethod="native" phpName="Employee">
-    <column name="emp_id" phpName="EmpId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
-    <column name="name" phpName="Name" type="VARCHAR" size="30" required="true"/>
-    <column name="emp_ssn" phpName="EmpSsn" type="INTEGER" required="true"/>
+    <column name="id" phpName="Id" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="emp_ssn" phpName="EmpSsn" type="INTEGER" size="20" required="true"/>
+    <column name="name" phpName="Name" type="VARCHAR" size="20" required="true"/>
     <column name="phone_num" phpName="PhoneNum" type="VARCHAR" size="20" required="true"/>
     <column name="salary" phpName="Salary" type="INTEGER" required="true"/>
     <column name="job_title" phpName="JobTitle" type="VARCHAR" size="20" required="true"/>
+    <column name="hired_by" phpName="HiredBy" type="INTEGER" required="true"/>
+    <foreign-key foreignTable="owner" name="employee_ibfk_1">
+      <reference local="hired_by" foreign="owner_id"/>
+    </foreign-key>
+    <unique name="paid_by">
+      <unique-column name="hired_by"/>
+    </unique>
     <vendor type="mysql">
       <parameter name="Engine" value="InnoDB"/>
     </vendor>
   </table>
   <table name="finances" idMethod="native" phpName="Finances">
-    <column name="invoices" phpName="Invoices" type="VARCHAR" size="11" required="true"/>
-    <column name="bills" phpName="Bills" type="VARCHAR" size="11" required="true"/>
+    <column name="invoices" phpName="Invoices" type="INTEGER" required="true"/>
+    <column name="bills" phpName="Bills" type="INTEGER" required="true"/>
+    <column name="paid_by" phpName="PaidBy" type="INTEGER" required="true"/>
     <column name="payroll" phpName="Payroll" type="INTEGER" required="true"/>
+    <column name="due_on" phpName="DueOn" type="DATE" required="true"/>
+    <foreign-key foreignTable="owner" name="finances_ibfk_1">
+      <reference local="paid_by" foreign="owner_id"/>
+    </foreign-key>
+    <index name="paid_by">
+      <index-column name="paid_by"/>
+    </index>
     <vendor type="mysql">
       <parameter name="Engine" value="InnoDB"/>
     </vendor>
   </table>
   <table name="inventory" idMethod="native" phpName="Inventory">
-    <column name="item" phpName="Item" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="item_id" phpName="ItemId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
+    <column name="item_name" phpName="ItemName" type="VARCHAR" size="20" required="true"/>
+    <column name="supplied_by" phpName="SuppliedBy" type="INTEGER" required="true"/>
     <column name="ship_date" phpName="ShipDate" type="DATE" required="true"/>
-    <column name="supplier" phpName="Supplier" type="VARCHAR" size="11" required="true"/>
     <column name="in_stock" phpName="InStock" type="INTEGER" required="true"/>
+    <column name="done_by" phpName="DoneBy" type="INTEGER" required="true"/>
+    <foreign-key foreignTable="supplier" name="inventory_ibfk_1">
+      <reference local="supplied_by" foreign="sup_id"/>
+    </foreign-key>
+    <foreign-key foreignTable="owner" name="inventory_ibfk_2">
+      <reference local="done_by" foreign="owner_id"/>
+    </foreign-key>
+    <index name="supplier">
+      <index-column name="supplied_by"/>
+    </index>
+    <index name="done_by">
+      <index-column name="done_by"/>
+    </index>
     <vendor type="mysql">
       <parameter name="Engine" value="InnoDB"/>
     </vendor>
@@ -40,9 +69,9 @@
   </table>
   <table name="supplier" idMethod="native" phpName="Supplier">
     <column name="sup_id" phpName="SupId" type="INTEGER" primaryKey="true" autoIncrement="true" required="true"/>
-    <column name="name" phpName="Name" type="VARCHAR" size="11" required="true"/>
+    <column name="name" phpName="Name" type="VARCHAR" size="20" required="true"/>
     <column name="address" phpName="Address" type="VARCHAR" size="30" required="true"/>
-    <column name="phone_num" phpName="PhoneNum" type="INTEGER" required="true"/>
+    <column name="phone_num" phpName="PhoneNum" type="VARCHAR" size="20" required="true"/>
     <vendor type="mysql">
       <parameter name="Engine" value="InnoDB"/>
     </vendor>

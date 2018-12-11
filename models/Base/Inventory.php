@@ -3,6 +3,10 @@
 namespace Base;
 
 use \InventoryQuery as ChildInventoryQuery;
+use \Owner as ChildOwner;
+use \OwnerQuery as ChildOwnerQuery;
+use \Supplier as ChildSupplier;
+use \SupplierQuery as ChildSupplierQuery;
 use \DateTime;
 use \Exception;
 use \PDO;
@@ -62,11 +66,25 @@ abstract class Inventory implements ActiveRecordInterface
     protected $virtualColumns = array();
 
     /**
-     * The value for the item field.
+     * The value for the item_id field.
      *
      * @var        int
      */
-    protected $item;
+    protected $item_id;
+
+    /**
+     * The value for the item_name field.
+     *
+     * @var        string
+     */
+    protected $item_name;
+
+    /**
+     * The value for the supplied_by field.
+     *
+     * @var        int
+     */
+    protected $supplied_by;
 
     /**
      * The value for the ship_date field.
@@ -76,18 +94,28 @@ abstract class Inventory implements ActiveRecordInterface
     protected $ship_date;
 
     /**
-     * The value for the supplier field.
-     *
-     * @var        string
-     */
-    protected $supplier;
-
-    /**
      * The value for the in_stock field.
      *
      * @var        int
      */
     protected $in_stock;
+
+    /**
+     * The value for the done_by field.
+     *
+     * @var        int
+     */
+    protected $done_by;
+
+    /**
+     * @var        ChildSupplier
+     */
+    protected $aSupplier;
+
+    /**
+     * @var        ChildOwner
+     */
+    protected $aOwner;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -323,13 +351,33 @@ abstract class Inventory implements ActiveRecordInterface
     }
 
     /**
-     * Get the [item] column value.
+     * Get the [item_id] column value.
      *
      * @return int
      */
-    public function getItem()
+    public function getItemId()
     {
-        return $this->item;
+        return $this->item_id;
+    }
+
+    /**
+     * Get the [item_name] column value.
+     *
+     * @return string
+     */
+    public function getItemName()
+    {
+        return $this->item_name;
+    }
+
+    /**
+     * Get the [supplied_by] column value.
+     *
+     * @return int
+     */
+    public function getSuppliedBy()
+    {
+        return $this->supplied_by;
     }
 
     /**
@@ -353,16 +401,6 @@ abstract class Inventory implements ActiveRecordInterface
     }
 
     /**
-     * Get the [supplier] column value.
-     *
-     * @return string
-     */
-    public function getSupplier()
-    {
-        return $this->supplier;
-    }
-
-    /**
      * Get the [in_stock] column value.
      *
      * @return int
@@ -373,24 +411,78 @@ abstract class Inventory implements ActiveRecordInterface
     }
 
     /**
-     * Set the value of [item] column.
+     * Get the [done_by] column value.
+     *
+     * @return int
+     */
+    public function getDoneBy()
+    {
+        return $this->done_by;
+    }
+
+    /**
+     * Set the value of [item_id] column.
      *
      * @param int $v new value
      * @return $this|\Inventory The current object (for fluent API support)
      */
-    public function setItem($v)
+    public function setItemId($v)
     {
         if ($v !== null) {
             $v = (int) $v;
         }
 
-        if ($this->item !== $v) {
-            $this->item = $v;
-            $this->modifiedColumns[InventoryTableMap::COL_ITEM] = true;
+        if ($this->item_id !== $v) {
+            $this->item_id = $v;
+            $this->modifiedColumns[InventoryTableMap::COL_ITEM_ID] = true;
         }
 
         return $this;
-    } // setItem()
+    } // setItemId()
+
+    /**
+     * Set the value of [item_name] column.
+     *
+     * @param string $v new value
+     * @return $this|\Inventory The current object (for fluent API support)
+     */
+    public function setItemName($v)
+    {
+        if ($v !== null) {
+            $v = (string) $v;
+        }
+
+        if ($this->item_name !== $v) {
+            $this->item_name = $v;
+            $this->modifiedColumns[InventoryTableMap::COL_ITEM_NAME] = true;
+        }
+
+        return $this;
+    } // setItemName()
+
+    /**
+     * Set the value of [supplied_by] column.
+     *
+     * @param int $v new value
+     * @return $this|\Inventory The current object (for fluent API support)
+     */
+    public function setSuppliedBy($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->supplied_by !== $v) {
+            $this->supplied_by = $v;
+            $this->modifiedColumns[InventoryTableMap::COL_SUPPLIED_BY] = true;
+        }
+
+        if ($this->aSupplier !== null && $this->aSupplier->getSupId() !== $v) {
+            $this->aSupplier = null;
+        }
+
+        return $this;
+    } // setSuppliedBy()
 
     /**
      * Sets the value of [ship_date] column to a normalized version of the date/time value specified.
@@ -413,26 +505,6 @@ abstract class Inventory implements ActiveRecordInterface
     } // setShipDate()
 
     /**
-     * Set the value of [supplier] column.
-     *
-     * @param string $v new value
-     * @return $this|\Inventory The current object (for fluent API support)
-     */
-    public function setSupplier($v)
-    {
-        if ($v !== null) {
-            $v = (string) $v;
-        }
-
-        if ($this->supplier !== $v) {
-            $this->supplier = $v;
-            $this->modifiedColumns[InventoryTableMap::COL_SUPPLIER] = true;
-        }
-
-        return $this;
-    } // setSupplier()
-
-    /**
      * Set the value of [in_stock] column.
      *
      * @param int $v new value
@@ -451,6 +523,30 @@ abstract class Inventory implements ActiveRecordInterface
 
         return $this;
     } // setInStock()
+
+    /**
+     * Set the value of [done_by] column.
+     *
+     * @param int $v new value
+     * @return $this|\Inventory The current object (for fluent API support)
+     */
+    public function setDoneBy($v)
+    {
+        if ($v !== null) {
+            $v = (int) $v;
+        }
+
+        if ($this->done_by !== $v) {
+            $this->done_by = $v;
+            $this->modifiedColumns[InventoryTableMap::COL_DONE_BY] = true;
+        }
+
+        if ($this->aOwner !== null && $this->aOwner->getOwnerId() !== $v) {
+            $this->aOwner = null;
+        }
+
+        return $this;
+    } // setDoneBy()
 
     /**
      * Indicates whether the columns in this object are only set to default values.
@@ -488,20 +584,26 @@ abstract class Inventory implements ActiveRecordInterface
     {
         try {
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : InventoryTableMap::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->item = (null !== $col) ? (int) $col : null;
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 0 + $startcol : InventoryTableMap::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->item_id = (null !== $col) ? (int) $col : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : InventoryTableMap::translateFieldName('ShipDate', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 1 + $startcol : InventoryTableMap::translateFieldName('ItemName', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->item_name = (null !== $col) ? (string) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : InventoryTableMap::translateFieldName('SuppliedBy', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->supplied_by = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : InventoryTableMap::translateFieldName('ShipDate', TableMap::TYPE_PHPNAME, $indexType)];
             if ($col === '0000-00-00') {
                 $col = null;
             }
             $this->ship_date = (null !== $col) ? PropelDateTime::newInstance($col, null, 'DateTime') : null;
 
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 2 + $startcol : InventoryTableMap::translateFieldName('Supplier', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->supplier = (null !== $col) ? (string) $col : null;
-
-            $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : InventoryTableMap::translateFieldName('InStock', TableMap::TYPE_PHPNAME, $indexType)];
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 4 + $startcol : InventoryTableMap::translateFieldName('InStock', TableMap::TYPE_PHPNAME, $indexType)];
             $this->in_stock = (null !== $col) ? (int) $col : null;
+
+            $col = $row[TableMap::TYPE_NUM == $indexType ? 5 + $startcol : InventoryTableMap::translateFieldName('DoneBy', TableMap::TYPE_PHPNAME, $indexType)];
+            $this->done_by = (null !== $col) ? (int) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -510,7 +612,7 @@ abstract class Inventory implements ActiveRecordInterface
                 $this->ensureConsistency();
             }
 
-            return $startcol + 4; // 4 = InventoryTableMap::NUM_HYDRATE_COLUMNS.
+            return $startcol + 6; // 6 = InventoryTableMap::NUM_HYDRATE_COLUMNS.
 
         } catch (Exception $e) {
             throw new PropelException(sprintf('Error populating %s object', '\\Inventory'), 0, $e);
@@ -532,6 +634,12 @@ abstract class Inventory implements ActiveRecordInterface
      */
     public function ensureConsistency()
     {
+        if ($this->aSupplier !== null && $this->supplied_by !== $this->aSupplier->getSupId()) {
+            $this->aSupplier = null;
+        }
+        if ($this->aOwner !== null && $this->done_by !== $this->aOwner->getOwnerId()) {
+            $this->aOwner = null;
+        }
     } // ensureConsistency
 
     /**
@@ -571,6 +679,8 @@ abstract class Inventory implements ActiveRecordInterface
 
         if ($deep) {  // also de-associate any related objects?
 
+            $this->aSupplier = null;
+            $this->aOwner = null;
         } // if (deep)
     }
 
@@ -674,6 +784,25 @@ abstract class Inventory implements ActiveRecordInterface
         if (!$this->alreadyInSave) {
             $this->alreadyInSave = true;
 
+            // We call the save method on the following object(s) if they
+            // were passed to this object by their corresponding set
+            // method.  This object relates to these object(s) by a
+            // foreign key reference.
+
+            if ($this->aSupplier !== null) {
+                if ($this->aSupplier->isModified() || $this->aSupplier->isNew()) {
+                    $affectedRows += $this->aSupplier->save($con);
+                }
+                $this->setSupplier($this->aSupplier);
+            }
+
+            if ($this->aOwner !== null) {
+                if ($this->aOwner->isModified() || $this->aOwner->isNew()) {
+                    $affectedRows += $this->aOwner->save($con);
+                }
+                $this->setOwner($this->aOwner);
+            }
+
             if ($this->isNew() || $this->isModified()) {
                 // persist changes
                 if ($this->isNew()) {
@@ -705,23 +834,29 @@ abstract class Inventory implements ActiveRecordInterface
         $modifiedColumns = array();
         $index = 0;
 
-        $this->modifiedColumns[InventoryTableMap::COL_ITEM] = true;
-        if (null !== $this->item) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key (' . InventoryTableMap::COL_ITEM . ')');
+        $this->modifiedColumns[InventoryTableMap::COL_ITEM_ID] = true;
+        if (null !== $this->item_id) {
+            throw new PropelException('Cannot insert a value for auto-increment primary key (' . InventoryTableMap::COL_ITEM_ID . ')');
         }
 
          // check the columns in natural order for more readable SQL queries
-        if ($this->isColumnModified(InventoryTableMap::COL_ITEM)) {
-            $modifiedColumns[':p' . $index++]  = 'item';
+        if ($this->isColumnModified(InventoryTableMap::COL_ITEM_ID)) {
+            $modifiedColumns[':p' . $index++]  = 'item_id';
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_ITEM_NAME)) {
+            $modifiedColumns[':p' . $index++]  = 'item_name';
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_SUPPLIED_BY)) {
+            $modifiedColumns[':p' . $index++]  = 'supplied_by';
         }
         if ($this->isColumnModified(InventoryTableMap::COL_SHIP_DATE)) {
             $modifiedColumns[':p' . $index++]  = 'ship_date';
         }
-        if ($this->isColumnModified(InventoryTableMap::COL_SUPPLIER)) {
-            $modifiedColumns[':p' . $index++]  = 'supplier';
-        }
         if ($this->isColumnModified(InventoryTableMap::COL_IN_STOCK)) {
             $modifiedColumns[':p' . $index++]  = 'in_stock';
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_DONE_BY)) {
+            $modifiedColumns[':p' . $index++]  = 'done_by';
         }
 
         $sql = sprintf(
@@ -734,17 +869,23 @@ abstract class Inventory implements ActiveRecordInterface
             $stmt = $con->prepare($sql);
             foreach ($modifiedColumns as $identifier => $columnName) {
                 switch ($columnName) {
-                    case 'item':
-                        $stmt->bindValue($identifier, $this->item, PDO::PARAM_INT);
+                    case 'item_id':
+                        $stmt->bindValue($identifier, $this->item_id, PDO::PARAM_INT);
+                        break;
+                    case 'item_name':
+                        $stmt->bindValue($identifier, $this->item_name, PDO::PARAM_STR);
+                        break;
+                    case 'supplied_by':
+                        $stmt->bindValue($identifier, $this->supplied_by, PDO::PARAM_INT);
                         break;
                     case 'ship_date':
                         $stmt->bindValue($identifier, $this->ship_date ? $this->ship_date->format("Y-m-d H:i:s.u") : null, PDO::PARAM_STR);
                         break;
-                    case 'supplier':
-                        $stmt->bindValue($identifier, $this->supplier, PDO::PARAM_STR);
-                        break;
                     case 'in_stock':
                         $stmt->bindValue($identifier, $this->in_stock, PDO::PARAM_INT);
+                        break;
+                    case 'done_by':
+                        $stmt->bindValue($identifier, $this->done_by, PDO::PARAM_INT);
                         break;
                 }
             }
@@ -759,7 +900,7 @@ abstract class Inventory implements ActiveRecordInterface
         } catch (Exception $e) {
             throw new PropelException('Unable to get autoincrement id.', 0, $e);
         }
-        $this->setItem($pk);
+        $this->setItemId($pk);
 
         $this->setNew(false);
     }
@@ -809,16 +950,22 @@ abstract class Inventory implements ActiveRecordInterface
     {
         switch ($pos) {
             case 0:
-                return $this->getItem();
+                return $this->getItemId();
                 break;
             case 1:
-                return $this->getShipDate();
+                return $this->getItemName();
                 break;
             case 2:
-                return $this->getSupplier();
+                return $this->getSuppliedBy();
                 break;
             case 3:
+                return $this->getShipDate();
+                break;
+            case 4:
                 return $this->getInStock();
+                break;
+            case 5:
+                return $this->getDoneBy();
                 break;
             default:
                 return null;
@@ -837,10 +984,11 @@ abstract class Inventory implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
         if (isset($alreadyDumpedObjects['Inventory'][$this->hashCode()])) {
@@ -849,13 +997,15 @@ abstract class Inventory implements ActiveRecordInterface
         $alreadyDumpedObjects['Inventory'][$this->hashCode()] = true;
         $keys = InventoryTableMap::getFieldNames($keyType);
         $result = array(
-            $keys[0] => $this->getItem(),
-            $keys[1] => $this->getShipDate(),
-            $keys[2] => $this->getSupplier(),
-            $keys[3] => $this->getInStock(),
+            $keys[0] => $this->getItemId(),
+            $keys[1] => $this->getItemName(),
+            $keys[2] => $this->getSuppliedBy(),
+            $keys[3] => $this->getShipDate(),
+            $keys[4] => $this->getInStock(),
+            $keys[5] => $this->getDoneBy(),
         );
-        if ($result[$keys[1]] instanceof \DateTimeInterface) {
-            $result[$keys[1]] = $result[$keys[1]]->format('c');
+        if ($result[$keys[3]] instanceof \DateTimeInterface) {
+            $result[$keys[3]] = $result[$keys[3]]->format('c');
         }
 
         $virtualColumns = $this->virtualColumns;
@@ -863,6 +1013,38 @@ abstract class Inventory implements ActiveRecordInterface
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->aSupplier) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'supplier';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'supplier';
+                        break;
+                    default:
+                        $key = 'Supplier';
+                }
+
+                $result[$key] = $this->aSupplier->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+            if (null !== $this->aOwner) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'owner';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'owner';
+                        break;
+                    default:
+                        $key = 'Owner';
+                }
+
+                $result[$key] = $this->aOwner->toArray($keyType, $includeLazyLoadColumns,  $alreadyDumpedObjects, true);
+            }
+        }
 
         return $result;
     }
@@ -897,16 +1079,22 @@ abstract class Inventory implements ActiveRecordInterface
     {
         switch ($pos) {
             case 0:
-                $this->setItem($value);
+                $this->setItemId($value);
                 break;
             case 1:
-                $this->setShipDate($value);
+                $this->setItemName($value);
                 break;
             case 2:
-                $this->setSupplier($value);
+                $this->setSuppliedBy($value);
                 break;
             case 3:
+                $this->setShipDate($value);
+                break;
+            case 4:
                 $this->setInStock($value);
+                break;
+            case 5:
+                $this->setDoneBy($value);
                 break;
         } // switch()
 
@@ -935,16 +1123,22 @@ abstract class Inventory implements ActiveRecordInterface
         $keys = InventoryTableMap::getFieldNames($keyType);
 
         if (array_key_exists($keys[0], $arr)) {
-            $this->setItem($arr[$keys[0]]);
+            $this->setItemId($arr[$keys[0]]);
         }
         if (array_key_exists($keys[1], $arr)) {
-            $this->setShipDate($arr[$keys[1]]);
+            $this->setItemName($arr[$keys[1]]);
         }
         if (array_key_exists($keys[2], $arr)) {
-            $this->setSupplier($arr[$keys[2]]);
+            $this->setSuppliedBy($arr[$keys[2]]);
         }
         if (array_key_exists($keys[3], $arr)) {
-            $this->setInStock($arr[$keys[3]]);
+            $this->setShipDate($arr[$keys[3]]);
+        }
+        if (array_key_exists($keys[4], $arr)) {
+            $this->setInStock($arr[$keys[4]]);
+        }
+        if (array_key_exists($keys[5], $arr)) {
+            $this->setDoneBy($arr[$keys[5]]);
         }
     }
 
@@ -987,17 +1181,23 @@ abstract class Inventory implements ActiveRecordInterface
     {
         $criteria = new Criteria(InventoryTableMap::DATABASE_NAME);
 
-        if ($this->isColumnModified(InventoryTableMap::COL_ITEM)) {
-            $criteria->add(InventoryTableMap::COL_ITEM, $this->item);
+        if ($this->isColumnModified(InventoryTableMap::COL_ITEM_ID)) {
+            $criteria->add(InventoryTableMap::COL_ITEM_ID, $this->item_id);
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_ITEM_NAME)) {
+            $criteria->add(InventoryTableMap::COL_ITEM_NAME, $this->item_name);
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_SUPPLIED_BY)) {
+            $criteria->add(InventoryTableMap::COL_SUPPLIED_BY, $this->supplied_by);
         }
         if ($this->isColumnModified(InventoryTableMap::COL_SHIP_DATE)) {
             $criteria->add(InventoryTableMap::COL_SHIP_DATE, $this->ship_date);
         }
-        if ($this->isColumnModified(InventoryTableMap::COL_SUPPLIER)) {
-            $criteria->add(InventoryTableMap::COL_SUPPLIER, $this->supplier);
-        }
         if ($this->isColumnModified(InventoryTableMap::COL_IN_STOCK)) {
             $criteria->add(InventoryTableMap::COL_IN_STOCK, $this->in_stock);
+        }
+        if ($this->isColumnModified(InventoryTableMap::COL_DONE_BY)) {
+            $criteria->add(InventoryTableMap::COL_DONE_BY, $this->done_by);
         }
 
         return $criteria;
@@ -1016,7 +1216,7 @@ abstract class Inventory implements ActiveRecordInterface
     public function buildPkeyCriteria()
     {
         $criteria = ChildInventoryQuery::create();
-        $criteria->add(InventoryTableMap::COL_ITEM, $this->item);
+        $criteria->add(InventoryTableMap::COL_ITEM_ID, $this->item_id);
 
         return $criteria;
     }
@@ -1029,7 +1229,7 @@ abstract class Inventory implements ActiveRecordInterface
      */
     public function hashCode()
     {
-        $validPk = null !== $this->getItem();
+        $validPk = null !== $this->getItemId();
 
         $validPrimaryKeyFKs = 0;
         $primaryKeyFKs = [];
@@ -1049,18 +1249,18 @@ abstract class Inventory implements ActiveRecordInterface
      */
     public function getPrimaryKey()
     {
-        return $this->getItem();
+        return $this->getItemId();
     }
 
     /**
-     * Generic method to set the primary key (item column).
+     * Generic method to set the primary key (item_id column).
      *
      * @param       int $key Primary key.
      * @return void
      */
     public function setPrimaryKey($key)
     {
-        $this->setItem($key);
+        $this->setItemId($key);
     }
 
     /**
@@ -1069,7 +1269,7 @@ abstract class Inventory implements ActiveRecordInterface
      */
     public function isPrimaryKeyNull()
     {
-        return null === $this->getItem();
+        return null === $this->getItemId();
     }
 
     /**
@@ -1085,12 +1285,14 @@ abstract class Inventory implements ActiveRecordInterface
      */
     public function copyInto($copyObj, $deepCopy = false, $makeNew = true)
     {
+        $copyObj->setItemName($this->getItemName());
+        $copyObj->setSuppliedBy($this->getSuppliedBy());
         $copyObj->setShipDate($this->getShipDate());
-        $copyObj->setSupplier($this->getSupplier());
         $copyObj->setInStock($this->getInStock());
+        $copyObj->setDoneBy($this->getDoneBy());
         if ($makeNew) {
             $copyObj->setNew(true);
-            $copyObj->setItem(NULL); // this is a auto-increment column, so set to default value
+            $copyObj->setItemId(NULL); // this is a auto-increment column, so set to default value
         }
     }
 
@@ -1117,16 +1319,126 @@ abstract class Inventory implements ActiveRecordInterface
     }
 
     /**
+     * Declares an association between this object and a ChildSupplier object.
+     *
+     * @param  ChildSupplier $v
+     * @return $this|\Inventory The current object (for fluent API support)
+     * @throws PropelException
+     */
+    public function setSupplier(ChildSupplier $v = null)
+    {
+        if ($v === null) {
+            $this->setSuppliedBy(NULL);
+        } else {
+            $this->setSuppliedBy($v->getSupId());
+        }
+
+        $this->aSupplier = $v;
+
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the ChildSupplier object, it will not be re-added.
+        if ($v !== null) {
+            $v->addInventory($this);
+        }
+
+
+        return $this;
+    }
+
+
+    /**
+     * Get the associated ChildSupplier object
+     *
+     * @param  ConnectionInterface $con Optional Connection object.
+     * @return ChildSupplier The associated ChildSupplier object.
+     * @throws PropelException
+     */
+    public function getSupplier(ConnectionInterface $con = null)
+    {
+        if ($this->aSupplier === null && ($this->supplied_by != 0)) {
+            $this->aSupplier = ChildSupplierQuery::create()->findPk($this->supplied_by, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aSupplier->addInventories($this);
+             */
+        }
+
+        return $this->aSupplier;
+    }
+
+    /**
+     * Declares an association between this object and a ChildOwner object.
+     *
+     * @param  ChildOwner $v
+     * @return $this|\Inventory The current object (for fluent API support)
+     * @throws PropelException
+     */
+    public function setOwner(ChildOwner $v = null)
+    {
+        if ($v === null) {
+            $this->setDoneBy(NULL);
+        } else {
+            $this->setDoneBy($v->getOwnerId());
+        }
+
+        $this->aOwner = $v;
+
+        // Add binding for other direction of this n:n relationship.
+        // If this object has already been added to the ChildOwner object, it will not be re-added.
+        if ($v !== null) {
+            $v->addInventory($this);
+        }
+
+
+        return $this;
+    }
+
+
+    /**
+     * Get the associated ChildOwner object
+     *
+     * @param  ConnectionInterface $con Optional Connection object.
+     * @return ChildOwner The associated ChildOwner object.
+     * @throws PropelException
+     */
+    public function getOwner(ConnectionInterface $con = null)
+    {
+        if ($this->aOwner === null && ($this->done_by != 0)) {
+            $this->aOwner = ChildOwnerQuery::create()->findPk($this->done_by, $con);
+            /* The following can be used additionally to
+                guarantee the related object contains a reference
+                to this object.  This level of coupling may, however, be
+                undesirable since it could result in an only partially populated collection
+                in the referenced object.
+                $this->aOwner->addInventories($this);
+             */
+        }
+
+        return $this->aOwner;
+    }
+
+    /**
      * Clears the current object, sets all attributes to their default values and removes
      * outgoing references as well as back-references (from other objects to this one. Results probably in a database
      * change of those foreign objects when you call `save` there).
      */
     public function clear()
     {
-        $this->item = null;
+        if (null !== $this->aSupplier) {
+            $this->aSupplier->removeInventory($this);
+        }
+        if (null !== $this->aOwner) {
+            $this->aOwner->removeInventory($this);
+        }
+        $this->item_id = null;
+        $this->item_name = null;
+        $this->supplied_by = null;
         $this->ship_date = null;
-        $this->supplier = null;
         $this->in_stock = null;
+        $this->done_by = null;
         $this->alreadyInSave = false;
         $this->clearAllReferences();
         $this->resetModified();
@@ -1147,6 +1459,8 @@ abstract class Inventory implements ActiveRecordInterface
         if ($deep) {
         } // if ($deep)
 
+        $this->aSupplier = null;
+        $this->aOwner = null;
     }
 
     /**

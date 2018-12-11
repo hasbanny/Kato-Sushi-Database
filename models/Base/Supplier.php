@@ -2,15 +2,20 @@
 
 namespace Base;
 
+use \Inventory as ChildInventory;
+use \InventoryQuery as ChildInventoryQuery;
+use \Supplier as ChildSupplier;
 use \SupplierQuery as ChildSupplierQuery;
 use \Exception;
 use \PDO;
+use Map\InventoryTableMap;
 use Map\SupplierTableMap;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
 use Propel\Runtime\ActiveRecord\ActiveRecordInterface;
 use Propel\Runtime\Collection\Collection;
+use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\BadMethodCallException;
 use Propel\Runtime\Exception\LogicException;
@@ -83,9 +88,15 @@ abstract class Supplier implements ActiveRecordInterface
     /**
      * The value for the phone_num field.
      *
-     * @var        int
+     * @var        string
      */
     protected $phone_num;
+
+    /**
+     * @var        ObjectCollection|ChildInventory[] Collection to store aggregation of ChildInventory objects.
+     */
+    protected $collInventories;
+    protected $collInventoriesPartial;
 
     /**
      * Flag to prevent endless save loop, if this object is referenced
@@ -94,6 +105,12 @@ abstract class Supplier implements ActiveRecordInterface
      * @var boolean
      */
     protected $alreadyInSave = false;
+
+    /**
+     * An array of objects scheduled for deletion.
+     * @var ObjectCollection|ChildInventory[]
+     */
+    protected $inventoriesScheduledForDeletion = null;
 
     /**
      * Initializes internal state of Base\Supplier object.
@@ -353,7 +370,7 @@ abstract class Supplier implements ActiveRecordInterface
     /**
      * Get the [phone_num] column value.
      *
-     * @return int
+     * @return string
      */
     public function getPhoneNum()
     {
@@ -423,13 +440,13 @@ abstract class Supplier implements ActiveRecordInterface
     /**
      * Set the value of [phone_num] column.
      *
-     * @param int $v new value
+     * @param string $v new value
      * @return $this|\Supplier The current object (for fluent API support)
      */
     public function setPhoneNum($v)
     {
         if ($v !== null) {
-            $v = (int) $v;
+            $v = (string) $v;
         }
 
         if ($this->phone_num !== $v) {
@@ -486,7 +503,7 @@ abstract class Supplier implements ActiveRecordInterface
             $this->address = (null !== $col) ? (string) $col : null;
 
             $col = $row[TableMap::TYPE_NUM == $indexType ? 3 + $startcol : SupplierTableMap::translateFieldName('PhoneNum', TableMap::TYPE_PHPNAME, $indexType)];
-            $this->phone_num = (null !== $col) ? (int) $col : null;
+            $this->phone_num = (null !== $col) ? (string) $col : null;
             $this->resetModified();
 
             $this->setNew(false);
@@ -555,6 +572,8 @@ abstract class Supplier implements ActiveRecordInterface
         $this->hydrate($row, 0, true, $dataFetcher->getIndexType()); // rehydrate
 
         if ($deep) {  // also de-associate any related objects?
+
+            $this->collInventories = null;
 
         } // if (deep)
     }
@@ -670,6 +689,23 @@ abstract class Supplier implements ActiveRecordInterface
                 $this->resetModified();
             }
 
+            if ($this->inventoriesScheduledForDeletion !== null) {
+                if (!$this->inventoriesScheduledForDeletion->isEmpty()) {
+                    \InventoryQuery::create()
+                        ->filterByPrimaryKeys($this->inventoriesScheduledForDeletion->getPrimaryKeys(false))
+                        ->delete($con);
+                    $this->inventoriesScheduledForDeletion = null;
+                }
+            }
+
+            if ($this->collInventories !== null) {
+                foreach ($this->collInventories as $referrerFK) {
+                    if (!$referrerFK->isDeleted() && ($referrerFK->isNew() || $referrerFK->isModified())) {
+                        $affectedRows += $referrerFK->save($con);
+                    }
+                }
+            }
+
             $this->alreadyInSave = false;
 
         }
@@ -729,7 +765,7 @@ abstract class Supplier implements ActiveRecordInterface
                         $stmt->bindValue($identifier, $this->address, PDO::PARAM_STR);
                         break;
                     case 'phone_num':
-                        $stmt->bindValue($identifier, $this->phone_num, PDO::PARAM_INT);
+                        $stmt->bindValue($identifier, $this->phone_num, PDO::PARAM_STR);
                         break;
                 }
             }
@@ -822,10 +858,11 @@ abstract class Supplier implements ActiveRecordInterface
      *                    Defaults to TableMap::TYPE_PHPNAME.
      * @param     boolean $includeLazyLoadColumns (optional) Whether to include lazy loaded columns. Defaults to TRUE.
      * @param     array $alreadyDumpedObjects List of objects to skip to avoid recursion
+     * @param     boolean $includeForeignObjects (optional) Whether to include hydrated related objects. Default to FALSE.
      *
      * @return array an associative array containing the field names (as keys) and field values
      */
-    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array())
+    public function toArray($keyType = TableMap::TYPE_PHPNAME, $includeLazyLoadColumns = true, $alreadyDumpedObjects = array(), $includeForeignObjects = false)
     {
 
         if (isset($alreadyDumpedObjects['Supplier'][$this->hashCode()])) {
@@ -844,6 +881,23 @@ abstract class Supplier implements ActiveRecordInterface
             $result[$key] = $virtualColumn;
         }
 
+        if ($includeForeignObjects) {
+            if (null !== $this->collInventories) {
+
+                switch ($keyType) {
+                    case TableMap::TYPE_CAMELNAME:
+                        $key = 'inventories';
+                        break;
+                    case TableMap::TYPE_FIELDNAME:
+                        $key = 'inventories';
+                        break;
+                    default:
+                        $key = 'Inventories';
+                }
+
+                $result[$key] = $this->collInventories->toArray(null, false, $keyType, $includeLazyLoadColumns, $alreadyDumpedObjects);
+            }
+        }
 
         return $result;
     }
@@ -1069,6 +1123,20 @@ abstract class Supplier implements ActiveRecordInterface
         $copyObj->setName($this->getName());
         $copyObj->setAddress($this->getAddress());
         $copyObj->setPhoneNum($this->getPhoneNum());
+
+        if ($deepCopy) {
+            // important: temporarily setNew(false) because this affects the behavior of
+            // the getter/setter methods for fkey referrer objects.
+            $copyObj->setNew(false);
+
+            foreach ($this->getInventories() as $relObj) {
+                if ($relObj !== $this) {  // ensure that we don't try to copy a reference to ourselves
+                    $copyObj->addInventory($relObj->copy($deepCopy));
+                }
+            }
+
+        } // if ($deepCopy)
+
         if ($makeNew) {
             $copyObj->setNew(true);
             $copyObj->setSupId(NULL); // this is a auto-increment column, so set to default value
@@ -1095,6 +1163,273 @@ abstract class Supplier implements ActiveRecordInterface
         $this->copyInto($copyObj, $deepCopy);
 
         return $copyObj;
+    }
+
+
+    /**
+     * Initializes a collection based on the name of a relation.
+     * Avoids crafting an 'init[$relationName]s' method name
+     * that wouldn't work when StandardEnglishPluralizer is used.
+     *
+     * @param      string $relationName The name of the relation to initialize
+     * @return void
+     */
+    public function initRelation($relationName)
+    {
+        if ('Inventory' == $relationName) {
+            $this->initInventories();
+            return;
+        }
+    }
+
+    /**
+     * Clears out the collInventories collection
+     *
+     * This does not modify the database; however, it will remove any associated objects, causing
+     * them to be refetched by subsequent calls to accessor method.
+     *
+     * @return void
+     * @see        addInventories()
+     */
+    public function clearInventories()
+    {
+        $this->collInventories = null; // important to set this to NULL since that means it is uninitialized
+    }
+
+    /**
+     * Reset is the collInventories collection loaded partially.
+     */
+    public function resetPartialInventories($v = true)
+    {
+        $this->collInventoriesPartial = $v;
+    }
+
+    /**
+     * Initializes the collInventories collection.
+     *
+     * By default this just sets the collInventories collection to an empty array (like clearcollInventories());
+     * however, you may wish to override this method in your stub class to provide setting appropriate
+     * to your application -- for example, setting the initial array to the values stored in database.
+     *
+     * @param      boolean $overrideExisting If set to true, the method call initializes
+     *                                        the collection even if it is not empty
+     *
+     * @return void
+     */
+    public function initInventories($overrideExisting = true)
+    {
+        if (null !== $this->collInventories && !$overrideExisting) {
+            return;
+        }
+
+        $collectionClassName = InventoryTableMap::getTableMap()->getCollectionClassName();
+
+        $this->collInventories = new $collectionClassName;
+        $this->collInventories->setModel('\Inventory');
+    }
+
+    /**
+     * Gets an array of ChildInventory objects which contain a foreign key that references this object.
+     *
+     * If the $criteria is not null, it is used to always fetch the results from the database.
+     * Otherwise the results are fetched from the database the first time, then cached.
+     * Next time the same method is called without $criteria, the cached collection is returned.
+     * If this ChildSupplier is new, it will return
+     * an empty collection or the current collection; the criteria is ignored on a new object.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @return ObjectCollection|ChildInventory[] List of ChildInventory objects
+     * @throws PropelException
+     */
+    public function getInventories(Criteria $criteria = null, ConnectionInterface $con = null)
+    {
+        $partial = $this->collInventoriesPartial && !$this->isNew();
+        if (null === $this->collInventories || null !== $criteria  || $partial) {
+            if ($this->isNew() && null === $this->collInventories) {
+                // return empty collection
+                $this->initInventories();
+            } else {
+                $collInventories = ChildInventoryQuery::create(null, $criteria)
+                    ->filterBySupplier($this)
+                    ->find($con);
+
+                if (null !== $criteria) {
+                    if (false !== $this->collInventoriesPartial && count($collInventories)) {
+                        $this->initInventories(false);
+
+                        foreach ($collInventories as $obj) {
+                            if (false == $this->collInventories->contains($obj)) {
+                                $this->collInventories->append($obj);
+                            }
+                        }
+
+                        $this->collInventoriesPartial = true;
+                    }
+
+                    return $collInventories;
+                }
+
+                if ($partial && $this->collInventories) {
+                    foreach ($this->collInventories as $obj) {
+                        if ($obj->isNew()) {
+                            $collInventories[] = $obj;
+                        }
+                    }
+                }
+
+                $this->collInventories = $collInventories;
+                $this->collInventoriesPartial = false;
+            }
+        }
+
+        return $this->collInventories;
+    }
+
+    /**
+     * Sets a collection of ChildInventory objects related by a one-to-many relationship
+     * to the current object.
+     * It will also schedule objects for deletion based on a diff between old objects (aka persisted)
+     * and new objects from the given Propel collection.
+     *
+     * @param      Collection $inventories A Propel collection.
+     * @param      ConnectionInterface $con Optional connection object
+     * @return $this|ChildSupplier The current object (for fluent API support)
+     */
+    public function setInventories(Collection $inventories, ConnectionInterface $con = null)
+    {
+        /** @var ChildInventory[] $inventoriesToDelete */
+        $inventoriesToDelete = $this->getInventories(new Criteria(), $con)->diff($inventories);
+
+
+        $this->inventoriesScheduledForDeletion = $inventoriesToDelete;
+
+        foreach ($inventoriesToDelete as $inventoryRemoved) {
+            $inventoryRemoved->setSupplier(null);
+        }
+
+        $this->collInventories = null;
+        foreach ($inventories as $inventory) {
+            $this->addInventory($inventory);
+        }
+
+        $this->collInventories = $inventories;
+        $this->collInventoriesPartial = false;
+
+        return $this;
+    }
+
+    /**
+     * Returns the number of related Inventory objects.
+     *
+     * @param      Criteria $criteria
+     * @param      boolean $distinct
+     * @param      ConnectionInterface $con
+     * @return int             Count of related Inventory objects.
+     * @throws PropelException
+     */
+    public function countInventories(Criteria $criteria = null, $distinct = false, ConnectionInterface $con = null)
+    {
+        $partial = $this->collInventoriesPartial && !$this->isNew();
+        if (null === $this->collInventories || null !== $criteria || $partial) {
+            if ($this->isNew() && null === $this->collInventories) {
+                return 0;
+            }
+
+            if ($partial && !$criteria) {
+                return count($this->getInventories());
+            }
+
+            $query = ChildInventoryQuery::create(null, $criteria);
+            if ($distinct) {
+                $query->distinct();
+            }
+
+            return $query
+                ->filterBySupplier($this)
+                ->count($con);
+        }
+
+        return count($this->collInventories);
+    }
+
+    /**
+     * Method called to associate a ChildInventory object to this object
+     * through the ChildInventory foreign key attribute.
+     *
+     * @param  ChildInventory $l ChildInventory
+     * @return $this|\Supplier The current object (for fluent API support)
+     */
+    public function addInventory(ChildInventory $l)
+    {
+        if ($this->collInventories === null) {
+            $this->initInventories();
+            $this->collInventoriesPartial = true;
+        }
+
+        if (!$this->collInventories->contains($l)) {
+            $this->doAddInventory($l);
+
+            if ($this->inventoriesScheduledForDeletion and $this->inventoriesScheduledForDeletion->contains($l)) {
+                $this->inventoriesScheduledForDeletion->remove($this->inventoriesScheduledForDeletion->search($l));
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param ChildInventory $inventory The ChildInventory object to add.
+     */
+    protected function doAddInventory(ChildInventory $inventory)
+    {
+        $this->collInventories[]= $inventory;
+        $inventory->setSupplier($this);
+    }
+
+    /**
+     * @param  ChildInventory $inventory The ChildInventory object to remove.
+     * @return $this|ChildSupplier The current object (for fluent API support)
+     */
+    public function removeInventory(ChildInventory $inventory)
+    {
+        if ($this->getInventories()->contains($inventory)) {
+            $pos = $this->collInventories->search($inventory);
+            $this->collInventories->remove($pos);
+            if (null === $this->inventoriesScheduledForDeletion) {
+                $this->inventoriesScheduledForDeletion = clone $this->collInventories;
+                $this->inventoriesScheduledForDeletion->clear();
+            }
+            $this->inventoriesScheduledForDeletion[]= clone $inventory;
+            $inventory->setSupplier(null);
+        }
+
+        return $this;
+    }
+
+
+    /**
+     * If this collection has already been initialized with
+     * an identical criteria, it returns the collection.
+     * Otherwise if this Supplier is new, it will return
+     * an empty collection; or if this Supplier has previously
+     * been saved, it will retrieve related Inventories from storage.
+     *
+     * This method is protected by default in order to keep the public
+     * api reasonable.  You can provide public methods for those you
+     * actually need in Supplier.
+     *
+     * @param      Criteria $criteria optional Criteria object to narrow the query
+     * @param      ConnectionInterface $con optional connection object
+     * @param      string $joinBehavior optional join type to use (defaults to Criteria::LEFT_JOIN)
+     * @return ObjectCollection|ChildInventory[] List of ChildInventory objects
+     */
+    public function getInventoriesJoinOwner(Criteria $criteria = null, ConnectionInterface $con = null, $joinBehavior = Criteria::LEFT_JOIN)
+    {
+        $query = ChildInventoryQuery::create(null, $criteria);
+        $query->joinWith('Owner', $joinBehavior);
+
+        return $this->getInventories($query, $con);
     }
 
     /**
@@ -1126,8 +1461,14 @@ abstract class Supplier implements ActiveRecordInterface
     public function clearAllReferences($deep = false)
     {
         if ($deep) {
+            if ($this->collInventories) {
+                foreach ($this->collInventories as $o) {
+                    $o->clearAllReferences($deep);
+                }
+            }
         } // if ($deep)
 
+        $this->collInventories = null;
     }
 
     /**

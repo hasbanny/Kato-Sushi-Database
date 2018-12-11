@@ -59,7 +59,7 @@ class InventoryTableMap extends TableMap
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 4;
+    const NUM_COLUMNS = 6;
 
     /**
      * The number of lazy-loaded columns
@@ -69,12 +69,22 @@ class InventoryTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 4;
+    const NUM_HYDRATE_COLUMNS = 6;
 
     /**
-     * the column name for the item field
+     * the column name for the item_id field
      */
-    const COL_ITEM = 'inventory.item';
+    const COL_ITEM_ID = 'inventory.item_id';
+
+    /**
+     * the column name for the item_name field
+     */
+    const COL_ITEM_NAME = 'inventory.item_name';
+
+    /**
+     * the column name for the supplied_by field
+     */
+    const COL_SUPPLIED_BY = 'inventory.supplied_by';
 
     /**
      * the column name for the ship_date field
@@ -82,14 +92,14 @@ class InventoryTableMap extends TableMap
     const COL_SHIP_DATE = 'inventory.ship_date';
 
     /**
-     * the column name for the supplier field
-     */
-    const COL_SUPPLIER = 'inventory.supplier';
-
-    /**
      * the column name for the in_stock field
      */
     const COL_IN_STOCK = 'inventory.in_stock';
+
+    /**
+     * the column name for the done_by field
+     */
+    const COL_DONE_BY = 'inventory.done_by';
 
     /**
      * The default string format for model objects of the related table
@@ -103,11 +113,11 @@ class InventoryTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('Item', 'ShipDate', 'Supplier', 'InStock', ),
-        self::TYPE_CAMELNAME     => array('item', 'shipDate', 'supplier', 'inStock', ),
-        self::TYPE_COLNAME       => array(InventoryTableMap::COL_ITEM, InventoryTableMap::COL_SHIP_DATE, InventoryTableMap::COL_SUPPLIER, InventoryTableMap::COL_IN_STOCK, ),
-        self::TYPE_FIELDNAME     => array('item', 'ship_date', 'supplier', 'in_stock', ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, )
+        self::TYPE_PHPNAME       => array('ItemId', 'ItemName', 'SuppliedBy', 'ShipDate', 'InStock', 'DoneBy', ),
+        self::TYPE_CAMELNAME     => array('itemId', 'itemName', 'suppliedBy', 'shipDate', 'inStock', 'doneBy', ),
+        self::TYPE_COLNAME       => array(InventoryTableMap::COL_ITEM_ID, InventoryTableMap::COL_ITEM_NAME, InventoryTableMap::COL_SUPPLIED_BY, InventoryTableMap::COL_SHIP_DATE, InventoryTableMap::COL_IN_STOCK, InventoryTableMap::COL_DONE_BY, ),
+        self::TYPE_FIELDNAME     => array('item_id', 'item_name', 'supplied_by', 'ship_date', 'in_stock', 'done_by', ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
     );
 
     /**
@@ -117,11 +127,11 @@ class InventoryTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('Item' => 0, 'ShipDate' => 1, 'Supplier' => 2, 'InStock' => 3, ),
-        self::TYPE_CAMELNAME     => array('item' => 0, 'shipDate' => 1, 'supplier' => 2, 'inStock' => 3, ),
-        self::TYPE_COLNAME       => array(InventoryTableMap::COL_ITEM => 0, InventoryTableMap::COL_SHIP_DATE => 1, InventoryTableMap::COL_SUPPLIER => 2, InventoryTableMap::COL_IN_STOCK => 3, ),
-        self::TYPE_FIELDNAME     => array('item' => 0, 'ship_date' => 1, 'supplier' => 2, 'in_stock' => 3, ),
-        self::TYPE_NUM           => array(0, 1, 2, 3, )
+        self::TYPE_PHPNAME       => array('ItemId' => 0, 'ItemName' => 1, 'SuppliedBy' => 2, 'ShipDate' => 3, 'InStock' => 4, 'DoneBy' => 5, ),
+        self::TYPE_CAMELNAME     => array('itemId' => 0, 'itemName' => 1, 'suppliedBy' => 2, 'shipDate' => 3, 'inStock' => 4, 'doneBy' => 5, ),
+        self::TYPE_COLNAME       => array(InventoryTableMap::COL_ITEM_ID => 0, InventoryTableMap::COL_ITEM_NAME => 1, InventoryTableMap::COL_SUPPLIED_BY => 2, InventoryTableMap::COL_SHIP_DATE => 3, InventoryTableMap::COL_IN_STOCK => 4, InventoryTableMap::COL_DONE_BY => 5, ),
+        self::TYPE_FIELDNAME     => array('item_id' => 0, 'item_name' => 1, 'supplied_by' => 2, 'ship_date' => 3, 'in_stock' => 4, 'done_by' => 5, ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, 5, )
     );
 
     /**
@@ -141,10 +151,12 @@ class InventoryTableMap extends TableMap
         $this->setPackage('');
         $this->setUseIdGenerator(true);
         // columns
-        $this->addPrimaryKey('item', 'Item', 'INTEGER', true, null, null);
+        $this->addPrimaryKey('item_id', 'ItemId', 'INTEGER', true, null, null);
+        $this->addColumn('item_name', 'ItemName', 'VARCHAR', true, 20, null);
+        $this->addForeignKey('supplied_by', 'SuppliedBy', 'INTEGER', 'supplier', 'sup_id', true, null, null);
         $this->addColumn('ship_date', 'ShipDate', 'DATE', true, null, null);
-        $this->addColumn('supplier', 'Supplier', 'VARCHAR', true, 11, null);
         $this->addColumn('in_stock', 'InStock', 'INTEGER', true, null, null);
+        $this->addForeignKey('done_by', 'DoneBy', 'INTEGER', 'owner', 'owner_id', true, null, null);
     } // initialize()
 
     /**
@@ -152,6 +164,20 @@ class InventoryTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('Supplier', '\\Supplier', RelationMap::MANY_TO_ONE, array (
+  0 =>
+  array (
+    0 => ':supplied_by',
+    1 => ':sup_id',
+  ),
+), null, null, null, false);
+        $this->addRelation('Owner', '\\Owner', RelationMap::MANY_TO_ONE, array (
+  0 =>
+  array (
+    0 => ':done_by',
+    1 => ':owner_id',
+  ),
+), null, null, null, false);
     } // buildRelations()
 
     /**
@@ -170,11 +196,11 @@ class InventoryTableMap extends TableMap
     public static function getPrimaryKeyHashFromRow($row, $offset = 0, $indexType = TableMap::TYPE_NUM)
     {
         // If the PK cannot be derived from the row, return NULL.
-        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)] === null) {
+        if ($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)] === null) {
             return null;
         }
 
-        return null === $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)] || is_scalar($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)]) || is_callable([$row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)], '__toString']) ? (string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)] : $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)];
+        return null === $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)] || is_scalar($row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)]) || is_callable([$row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)], '__toString']) ? (string) $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)] : $row[TableMap::TYPE_NUM == $indexType ? 0 + $offset : static::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)];
     }
 
     /**
@@ -194,7 +220,7 @@ class InventoryTableMap extends TableMap
         return (int) $row[
             $indexType == TableMap::TYPE_NUM
                 ? 0 + $offset
-                : self::translateFieldName('Item', TableMap::TYPE_PHPNAME, $indexType)
+                : self::translateFieldName('ItemId', TableMap::TYPE_PHPNAME, $indexType)
         ];
     }
 
@@ -295,15 +321,19 @@ class InventoryTableMap extends TableMap
     public static function addSelectColumns(Criteria $criteria, $alias = null)
     {
         if (null === $alias) {
-            $criteria->addSelectColumn(InventoryTableMap::COL_ITEM);
+            $criteria->addSelectColumn(InventoryTableMap::COL_ITEM_ID);
+            $criteria->addSelectColumn(InventoryTableMap::COL_ITEM_NAME);
+            $criteria->addSelectColumn(InventoryTableMap::COL_SUPPLIED_BY);
             $criteria->addSelectColumn(InventoryTableMap::COL_SHIP_DATE);
-            $criteria->addSelectColumn(InventoryTableMap::COL_SUPPLIER);
             $criteria->addSelectColumn(InventoryTableMap::COL_IN_STOCK);
+            $criteria->addSelectColumn(InventoryTableMap::COL_DONE_BY);
         } else {
-            $criteria->addSelectColumn($alias . '.item');
+            $criteria->addSelectColumn($alias . '.item_id');
+            $criteria->addSelectColumn($alias . '.item_name');
+            $criteria->addSelectColumn($alias . '.supplied_by');
             $criteria->addSelectColumn($alias . '.ship_date');
-            $criteria->addSelectColumn($alias . '.supplier');
             $criteria->addSelectColumn($alias . '.in_stock');
+            $criteria->addSelectColumn($alias . '.done_by');
         }
     }
 
@@ -355,7 +385,7 @@ class InventoryTableMap extends TableMap
             $criteria = $values->buildPkeyCriteria();
         } else { // it's a primary key, or an array of pks
             $criteria = new Criteria(InventoryTableMap::DATABASE_NAME);
-            $criteria->add(InventoryTableMap::COL_ITEM, (array) $values, Criteria::IN);
+            $criteria->add(InventoryTableMap::COL_ITEM_ID, (array) $values, Criteria::IN);
         }
 
         $query = InventoryQuery::create()->mergeWith($criteria);
@@ -403,8 +433,8 @@ class InventoryTableMap extends TableMap
             $criteria = $criteria->buildCriteria(); // build Criteria from Inventory object
         }
 
-        if ($criteria->containsKey(InventoryTableMap::COL_ITEM) && $criteria->keyContainsValue(InventoryTableMap::COL_ITEM) ) {
-            throw new PropelException('Cannot insert a value for auto-increment primary key ('.InventoryTableMap::COL_ITEM.')');
+        if ($criteria->containsKey(InventoryTableMap::COL_ITEM_ID) && $criteria->keyContainsValue(InventoryTableMap::COL_ITEM_ID) ) {
+            throw new PropelException('Cannot insert a value for auto-increment primary key ('.InventoryTableMap::COL_ITEM_ID.')');
         }
 
 

@@ -60,7 +60,7 @@ class FinancesTableMap extends TableMap
     /**
      * The total number of columns
      */
-    const NUM_COLUMNS = 3;
+    const NUM_COLUMNS = 5;
 
     /**
      * The number of lazy-loaded columns
@@ -70,7 +70,7 @@ class FinancesTableMap extends TableMap
     /**
      * The number of columns to hydrate (NUM_COLUMNS - NUM_LAZY_LOAD_COLUMNS)
      */
-    const NUM_HYDRATE_COLUMNS = 3;
+    const NUM_HYDRATE_COLUMNS = 5;
 
     /**
      * the column name for the invoices field
@@ -83,9 +83,19 @@ class FinancesTableMap extends TableMap
     const COL_BILLS = 'finances.bills';
 
     /**
+     * the column name for the paid_by field
+     */
+    const COL_PAID_BY = 'finances.paid_by';
+
+    /**
      * the column name for the payroll field
      */
     const COL_PAYROLL = 'finances.payroll';
+
+    /**
+     * the column name for the due_on field
+     */
+    const COL_DUE_ON = 'finances.due_on';
 
     /**
      * The default string format for model objects of the related table
@@ -99,11 +109,11 @@ class FinancesTableMap extends TableMap
      * e.g. self::$fieldNames[self::TYPE_PHPNAME][0] = 'Id'
      */
     protected static $fieldNames = array (
-        self::TYPE_PHPNAME       => array('Invoices', 'Bills', 'Payroll', ),
-        self::TYPE_CAMELNAME     => array('invoices', 'bills', 'payroll', ),
-        self::TYPE_COLNAME       => array(FinancesTableMap::COL_INVOICES, FinancesTableMap::COL_BILLS, FinancesTableMap::COL_PAYROLL, ),
-        self::TYPE_FIELDNAME     => array('invoices', 'bills', 'payroll', ),
-        self::TYPE_NUM           => array(0, 1, 2, )
+        self::TYPE_PHPNAME       => array('Invoices', 'Bills', 'PaidBy', 'Payroll', 'DueOn', ),
+        self::TYPE_CAMELNAME     => array('invoices', 'bills', 'paidBy', 'payroll', 'dueOn', ),
+        self::TYPE_COLNAME       => array(FinancesTableMap::COL_INVOICES, FinancesTableMap::COL_BILLS, FinancesTableMap::COL_PAID_BY, FinancesTableMap::COL_PAYROLL, FinancesTableMap::COL_DUE_ON, ),
+        self::TYPE_FIELDNAME     => array('invoices', 'bills', 'paid_by', 'payroll', 'due_on', ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, )
     );
 
     /**
@@ -113,11 +123,11 @@ class FinancesTableMap extends TableMap
      * e.g. self::$fieldKeys[self::TYPE_PHPNAME]['Id'] = 0
      */
     protected static $fieldKeys = array (
-        self::TYPE_PHPNAME       => array('Invoices' => 0, 'Bills' => 1, 'Payroll' => 2, ),
-        self::TYPE_CAMELNAME     => array('invoices' => 0, 'bills' => 1, 'payroll' => 2, ),
-        self::TYPE_COLNAME       => array(FinancesTableMap::COL_INVOICES => 0, FinancesTableMap::COL_BILLS => 1, FinancesTableMap::COL_PAYROLL => 2, ),
-        self::TYPE_FIELDNAME     => array('invoices' => 0, 'bills' => 1, 'payroll' => 2, ),
-        self::TYPE_NUM           => array(0, 1, 2, )
+        self::TYPE_PHPNAME       => array('Invoices' => 0, 'Bills' => 1, 'PaidBy' => 2, 'Payroll' => 3, 'DueOn' => 4, ),
+        self::TYPE_CAMELNAME     => array('invoices' => 0, 'bills' => 1, 'paidBy' => 2, 'payroll' => 3, 'dueOn' => 4, ),
+        self::TYPE_COLNAME       => array(FinancesTableMap::COL_INVOICES => 0, FinancesTableMap::COL_BILLS => 1, FinancesTableMap::COL_PAID_BY => 2, FinancesTableMap::COL_PAYROLL => 3, FinancesTableMap::COL_DUE_ON => 4, ),
+        self::TYPE_FIELDNAME     => array('invoices' => 0, 'bills' => 1, 'paid_by' => 2, 'payroll' => 3, 'due_on' => 4, ),
+        self::TYPE_NUM           => array(0, 1, 2, 3, 4, )
     );
 
     /**
@@ -137,9 +147,11 @@ class FinancesTableMap extends TableMap
         $this->setPackage('');
         $this->setUseIdGenerator(false);
         // columns
-        $this->addColumn('invoices', 'Invoices', 'VARCHAR', true, 11, null);
-        $this->addColumn('bills', 'Bills', 'VARCHAR', true, 11, null);
+        $this->addColumn('invoices', 'Invoices', 'INTEGER', true, null, null);
+        $this->addColumn('bills', 'Bills', 'INTEGER', true, null, null);
+        $this->addForeignKey('paid_by', 'PaidBy', 'INTEGER', 'owner', 'owner_id', true, null, null);
         $this->addColumn('payroll', 'Payroll', 'INTEGER', true, null, null);
+        $this->addColumn('due_on', 'DueOn', 'DATE', true, null, null);
     } // initialize()
 
     /**
@@ -147,6 +159,13 @@ class FinancesTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('Owner', '\\Owner', RelationMap::MANY_TO_ONE, array (
+  0 =>
+  array (
+    0 => ':paid_by',
+    1 => ':owner_id',
+  ),
+), null, null, null, false);
     } // buildRelations()
 
     /**
@@ -283,11 +302,15 @@ class FinancesTableMap extends TableMap
         if (null === $alias) {
             $criteria->addSelectColumn(FinancesTableMap::COL_INVOICES);
             $criteria->addSelectColumn(FinancesTableMap::COL_BILLS);
+            $criteria->addSelectColumn(FinancesTableMap::COL_PAID_BY);
             $criteria->addSelectColumn(FinancesTableMap::COL_PAYROLL);
+            $criteria->addSelectColumn(FinancesTableMap::COL_DUE_ON);
         } else {
             $criteria->addSelectColumn($alias . '.invoices');
             $criteria->addSelectColumn($alias . '.bills');
+            $criteria->addSelectColumn($alias . '.paid_by');
             $criteria->addSelectColumn($alias . '.payroll');
+            $criteria->addSelectColumn($alias . '.due_on');
         }
     }
 

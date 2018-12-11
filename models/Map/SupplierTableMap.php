@@ -142,9 +142,9 @@ class SupplierTableMap extends TableMap
         $this->setUseIdGenerator(true);
         // columns
         $this->addPrimaryKey('sup_id', 'SupId', 'INTEGER', true, null, null);
-        $this->addColumn('name', 'Name', 'VARCHAR', true, 11, null);
+        $this->addColumn('name', 'Name', 'VARCHAR', true, 20, null);
         $this->addColumn('address', 'Address', 'VARCHAR', true, 30, null);
-        $this->addColumn('phone_num', 'PhoneNum', 'INTEGER', true, null, null);
+        $this->addColumn('phone_num', 'PhoneNum', 'VARCHAR', true, 20, null);
     } // initialize()
 
     /**
@@ -152,6 +152,13 @@ class SupplierTableMap extends TableMap
      */
     public function buildRelations()
     {
+        $this->addRelation('Inventory', '\\Inventory', RelationMap::ONE_TO_MANY, array (
+  0 =>
+  array (
+    0 => ':supplied_by',
+    1 => ':sup_id',
+  ),
+), null, null, 'Inventories', false);
     } // buildRelations()
 
     /**

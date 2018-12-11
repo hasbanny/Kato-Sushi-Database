@@ -10,6 +10,7 @@ use Map\SupplierTableMap;
 use Propel\Runtime\Propel;
 use Propel\Runtime\ActiveQuery\Criteria;
 use Propel\Runtime\ActiveQuery\ModelCriteria;
+use Propel\Runtime\ActiveQuery\ModelJoin;
 use Propel\Runtime\Collection\ObjectCollection;
 use Propel\Runtime\Connection\ConnectionInterface;
 use Propel\Runtime\Exception\PropelException;
@@ -37,13 +38,25 @@ use Propel\Runtime\Exception\PropelException;
  * @method     ChildSupplierQuery rightJoinWith($relation) Adds a RIGHT JOIN clause and with to the query
  * @method     ChildSupplierQuery innerJoinWith($relation) Adds a INNER JOIN clause and with to the query
  *
+ * @method     ChildSupplierQuery leftJoinInventory($relationAlias = null) Adds a LEFT JOIN clause to the query using the Inventory relation
+ * @method     ChildSupplierQuery rightJoinInventory($relationAlias = null) Adds a RIGHT JOIN clause to the query using the Inventory relation
+ * @method     ChildSupplierQuery innerJoinInventory($relationAlias = null) Adds a INNER JOIN clause to the query using the Inventory relation
+ *
+ * @method     ChildSupplierQuery joinWithInventory($joinType = Criteria::INNER_JOIN) Adds a join clause and with to the query using the Inventory relation
+ *
+ * @method     ChildSupplierQuery leftJoinWithInventory() Adds a LEFT JOIN clause and with to the query using the Inventory relation
+ * @method     ChildSupplierQuery rightJoinWithInventory() Adds a RIGHT JOIN clause and with to the query using the Inventory relation
+ * @method     ChildSupplierQuery innerJoinWithInventory() Adds a INNER JOIN clause and with to the query using the Inventory relation
+ *
+ * @method     \InventoryQuery endUse() Finalizes a secondary criteria and merges it with its primary Criteria
+ *
  * @method     ChildSupplier findOne(ConnectionInterface $con = null) Return the first ChildSupplier matching the query
  * @method     ChildSupplier findOneOrCreate(ConnectionInterface $con = null) Return the first ChildSupplier matching the query, or a new ChildSupplier object populated from the query conditions when no match is found
  *
  * @method     ChildSupplier findOneBySupId(int $sup_id) Return the first ChildSupplier filtered by the sup_id column
  * @method     ChildSupplier findOneByName(string $name) Return the first ChildSupplier filtered by the name column
  * @method     ChildSupplier findOneByAddress(string $address) Return the first ChildSupplier filtered by the address column
- * @method     ChildSupplier findOneByPhoneNum(int $phone_num) Return the first ChildSupplier filtered by the phone_num column *
+ * @method     ChildSupplier findOneByPhoneNum(string $phone_num) Return the first ChildSupplier filtered by the phone_num column *
 
  * @method     ChildSupplier requirePk($key, ConnectionInterface $con = null) Return the ChildSupplier by primary key and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildSupplier requireOne(ConnectionInterface $con = null) Return the first ChildSupplier matching the query and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
@@ -51,13 +64,13 @@ use Propel\Runtime\Exception\PropelException;
  * @method     ChildSupplier requireOneBySupId(int $sup_id) Return the first ChildSupplier filtered by the sup_id column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildSupplier requireOneByName(string $name) Return the first ChildSupplier filtered by the name column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  * @method     ChildSupplier requireOneByAddress(string $address) Return the first ChildSupplier filtered by the address column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
- * @method     ChildSupplier requireOneByPhoneNum(int $phone_num) Return the first ChildSupplier filtered by the phone_num column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
+ * @method     ChildSupplier requireOneByPhoneNum(string $phone_num) Return the first ChildSupplier filtered by the phone_num column and throws \Propel\Runtime\Exception\EntityNotFoundException when not found
  *
  * @method     ChildSupplier[]|ObjectCollection find(ConnectionInterface $con = null) Return ChildSupplier objects based on current ModelCriteria
  * @method     ChildSupplier[]|ObjectCollection findBySupId(int $sup_id) Return ChildSupplier objects filtered by the sup_id column
  * @method     ChildSupplier[]|ObjectCollection findByName(string $name) Return ChildSupplier objects filtered by the name column
  * @method     ChildSupplier[]|ObjectCollection findByAddress(string $address) Return ChildSupplier objects filtered by the address column
- * @method     ChildSupplier[]|ObjectCollection findByPhoneNum(int $phone_num) Return ChildSupplier objects filtered by the phone_num column
+ * @method     ChildSupplier[]|ObjectCollection findByPhoneNum(string $phone_num) Return ChildSupplier objects filtered by the phone_num column
  * @method     ChildSupplier[]|\Propel\Runtime\Util\PropelModelPager paginate($page = 1, $maxPerPage = 10, ConnectionInterface $con = null) Issue a SELECT query based on the current ModelCriteria and uses a page and a maximum number of results per page to compute an offset and a limit
  *
  */
@@ -342,40 +355,97 @@ abstract class SupplierQuery extends ModelCriteria
      *
      * Example usage:
      * <code>
-     * $query->filterByPhoneNum(1234); // WHERE phone_num = 1234
-     * $query->filterByPhoneNum(array(12, 34)); // WHERE phone_num IN (12, 34)
-     * $query->filterByPhoneNum(array('min' => 12)); // WHERE phone_num > 12
+     * $query->filterByPhoneNum('fooValue');   // WHERE phone_num = 'fooValue'
+     * $query->filterByPhoneNum('%fooValue%', Criteria::LIKE); // WHERE phone_num LIKE '%fooValue%'
      * </code>
      *
-     * @param     mixed $phoneNum The value to use as filter.
-     *              Use scalar values for equality.
-     *              Use array values for in_array() equivalent.
-     *              Use associative array('min' => $minValue, 'max' => $maxValue) for intervals.
+     * @param     string $phoneNum The value to use as filter.
      * @param     string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
      *
      * @return $this|ChildSupplierQuery The current query, for fluid interface
      */
     public function filterByPhoneNum($phoneNum = null, $comparison = null)
     {
-        if (is_array($phoneNum)) {
-            $useMinMax = false;
-            if (isset($phoneNum['min'])) {
-                $this->addUsingAlias(SupplierTableMap::COL_PHONE_NUM, $phoneNum['min'], Criteria::GREATER_EQUAL);
-                $useMinMax = true;
-            }
-            if (isset($phoneNum['max'])) {
-                $this->addUsingAlias(SupplierTableMap::COL_PHONE_NUM, $phoneNum['max'], Criteria::LESS_EQUAL);
-                $useMinMax = true;
-            }
-            if ($useMinMax) {
-                return $this;
-            }
-            if (null === $comparison) {
+        if (null === $comparison) {
+            if (is_array($phoneNum)) {
                 $comparison = Criteria::IN;
             }
         }
 
         return $this->addUsingAlias(SupplierTableMap::COL_PHONE_NUM, $phoneNum, $comparison);
+    }
+
+    /**
+     * Filter the query by a related \Inventory object
+     *
+     * @param \Inventory|ObjectCollection $inventory the related object to use as filter
+     * @param string $comparison Operator to use for the column comparison, defaults to Criteria::EQUAL
+     *
+     * @return ChildSupplierQuery The current query, for fluid interface
+     */
+    public function filterByInventory($inventory, $comparison = null)
+    {
+        if ($inventory instanceof \Inventory) {
+            return $this
+                ->addUsingAlias(SupplierTableMap::COL_SUP_ID, $inventory->getSuppliedBy(), $comparison);
+        } elseif ($inventory instanceof ObjectCollection) {
+            return $this
+                ->useInventoryQuery()
+                ->filterByPrimaryKeys($inventory->getPrimaryKeys())
+                ->endUse();
+        } else {
+            throw new PropelException('filterByInventory() only accepts arguments of type \Inventory or Collection');
+        }
+    }
+
+    /**
+     * Adds a JOIN clause to the query using the Inventory relation
+     *
+     * @param     string $relationAlias optional alias for the relation
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return $this|ChildSupplierQuery The current query, for fluid interface
+     */
+    public function joinInventory($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        $tableMap = $this->getTableMap();
+        $relationMap = $tableMap->getRelation('Inventory');
+
+        // create a ModelJoin object for this join
+        $join = new ModelJoin();
+        $join->setJoinType($joinType);
+        $join->setRelationMap($relationMap, $this->useAliasInSQL ? $this->getModelAlias() : null, $relationAlias);
+        if ($previousJoin = $this->getPreviousJoin()) {
+            $join->setPreviousJoin($previousJoin);
+        }
+
+        // add the ModelJoin to the current object
+        if ($relationAlias) {
+            $this->addAlias($relationAlias, $relationMap->getRightTable()->getName());
+            $this->addJoinObject($join, $relationAlias);
+        } else {
+            $this->addJoinObject($join, 'Inventory');
+        }
+
+        return $this;
+    }
+
+    /**
+     * Use the Inventory relation Inventory object
+     *
+     * @see useQuery()
+     *
+     * @param     string $relationAlias optional alias for the relation,
+     *                                   to be used as main alias in the secondary query
+     * @param     string $joinType Accepted values are null, 'left join', 'right join', 'inner join'
+     *
+     * @return \InventoryQuery A secondary query class using the current class as primary query
+     */
+    public function useInventoryQuery($relationAlias = null, $joinType = Criteria::INNER_JOIN)
+    {
+        return $this
+            ->joinInventory($relationAlias, $joinType)
+            ->useQuery($relationAlias ? $relationAlias : 'Inventory', '\InventoryQuery');
     }
 
     /**
